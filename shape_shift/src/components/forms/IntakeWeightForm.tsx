@@ -6,8 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import axios from "axios";
 
-export function IntakeBMIForm() {
-  const [BMI, setBMI] = useState("");
+export function IntakeWeightForm() {
+  const [weight, setWeight] = useState("");
   const [submitted, setSubmitted] = useState(false);
 
   useEffect(() => {
@@ -19,24 +19,24 @@ export function IntakeBMIForm() {
   }, []);
 
   const handleSubmit = async () => {
-    await axios.post("/api/log-BMI", {
-      weight: parseFloat(BMI),
+    await axios.post("/api/log-weight", {
+      weight: parseFloat(weight),
       date: new Date().toISOString().split("T")[0],
     });
     setSubmitted(true);
   };
 
-  if (submitted) return <p className="text-green-600">✅ BMI logged today!</p>;
+  if (submitted) return <p className="text-green-600">✅ Weight logged today!</p>;
 
   return (
     <div className="space-y-4">
-      <Label htmlFor="weight">BMI </Label>
+      <Label htmlFor="weight">Weight (kg)</Label>
       <Input
-        id="BMI"
+        id="weight"
         type="number"
-        placeholder="Enter BMI"
-        value={BMI}
-        onChange={(e) => setBMI(e.target.value)}
+        placeholder="Enter weight"
+        value={weight}
+        onChange={(e) => setWeight(e.target.value)}
       />
       <Button onClick={handleSubmit}>Submit</Button>
     </div>
