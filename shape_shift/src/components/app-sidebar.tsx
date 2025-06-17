@@ -63,8 +63,8 @@ export function AppSidebar() {
   const pathname = usePathname();
 
   return (
-    <Sidebar>
-      <SidebarContent>
+    <Sidebar className="w-64 shrink-0 h-screen border-r bg-white">
+      <SidebarContent >
         {/* Main Section */}
         <SidebarGroup>
           <SidebarGroupLabel>ShapeShift</SidebarGroupLabel>
