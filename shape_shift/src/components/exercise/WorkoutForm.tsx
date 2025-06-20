@@ -1,18 +1,31 @@
 "use client";
 
 import { useState } from "react";
+import { generateWorkoutPlan } from "@/lib/api"
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
+import { on } from "events";
 
-export default function WorkoutForm() {
+export default function WorkoutForm({ onPlanReady }: { onPlanReady: (plan: any) => void }) {
   const [goal, setGoal] = useState("");
   const [level, setLevel] = useState("");
   const [duration, setDuration] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleGenerate = () => {
-    // TODO: call AI backend
-    console.log({ goal, level, duration });
+  const handleGenerate = async () => {
+    try {
+      setLoading(true);
+      const data = await generateWorkoutPlan(goal, level, parseInt(duration));
+      console.log("Generated Plan:", data.plan);
+      onPlanReady(data.plan);
+    }catch (error) {
+      console.error("Error generating workout plan:", error);
+      alert("Failed to generate workout plan. Please try again.");
+    }finally {
+      setLoading(false);
+    }
+    
   };
 
   return (
@@ -39,7 +52,7 @@ export default function WorkoutForm() {
 
       <Input type="number" placeholder="Workout duration (mins)" onChange={(e) => setDuration(e.target.value)} />
 
-      <Button onClick={handleGenerate}>Generate Plan</Button>
+      <Button onClick={handleGenerate} disabled= {loading}>{loading ? "Generating..." : "Generate Plan"}</Button>
     </div>
   );
 }

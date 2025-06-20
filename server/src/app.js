@@ -19,10 +19,12 @@ app.use(cookieParser());
 // Import routes
 const authRoutes = require('./routes/auth');
 const intakeRoutes = require('./routes/intake');
+const exerciseRoutes = require('./routes/exercise');
 
 
 app.use('/api/intake', intakeRoutes); // mount intake routes
 app.use('/api/auth', authRoutes);
+app.use('/api/exercise', exerciseRoutes); // mount exercise routes
 
 
 module.exports = app;

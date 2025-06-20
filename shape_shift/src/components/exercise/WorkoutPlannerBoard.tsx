@@ -1,35 +1,20 @@
 "use client";
 
-import { useState } from "react";
 import WorkoutCard from "./WorkoutCard";
+import { Button } from "@/components/ui/button";
 
-export default function WorkoutPlannerBoard() {
-  const [planner, setPlanner] = useState<{ [day: string]: any[] }>({
-    Monday: [],
-    Tuesday: [],
-    Wednesday: [],
-  });
-
-  const addWorkout = (day: string, workout: any) => {
-    setPlanner((prev) => ({
-      ...prev,
-      [day]: [...prev[day], workout],
-    }));
-  };
-
-  const dummyWorkout = { name: "Pushups", sets: 3, reps: 15 };
-
+export default function WorkoutPlannerBoard({
+  planner,
+  addWorkout,
+  removeWorkout,
+}: {
+  planner: { [day: string]: any[] };
+  addWorkout: (day: string, workout: any) => void;
+  removeWorkout: (day: string, index: number) => void;
+}) {
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h2 className="text-xl font-semibold">📆 Your Weekly Planner</h2>
-        <button
-          className="text-sm underline"
-          onClick={() => addWorkout("Monday", dummyWorkout)}
-        >
-          ➕ Add Dummy Workout to Monday
-        </button>
-      </div>
+      <h2 className="text-xl font-semibold">📆 Your Weekly Planner</h2>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {Object.keys(planner).map((day) => (
@@ -39,7 +24,17 @@ export default function WorkoutPlannerBoard() {
               <p className="text-sm text-gray-500">No workouts yet.</p>
             ) : (
               planner[day].map((w, idx) => (
-                <WorkoutCard key={idx} {...w} />
+                <div key={idx} className="relative">
+                  <WorkoutCard {...w} />
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    className="absolute top-2 right-2"
+                    onClick={() => removeWorkout(day, idx)}
+                  >
+                    🗑️
+                  </Button>
+                </div>
               ))
             )}
           </div>

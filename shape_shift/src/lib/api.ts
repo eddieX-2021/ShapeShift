@@ -59,3 +59,17 @@ export async function logoutUser() {
         }
     }
 }
+export async function generateWorkoutPlan(goal: string, level: string, duration: number) {
+    try{ 
+      const response = await api.post("/exercise/generate-plan", { goal, level, duration });
+      return response.data;
+    }catch (error: any) {
+      if (error.response) {
+        throw new Error(error.response.data.error || 'Failed to generate workout plan');
+      } else if (error.request) {
+        throw new Error('No response from server');
+      } else {
+        throw new Error(error.message);
+      }
+    }
+  }
