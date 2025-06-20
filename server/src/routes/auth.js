@@ -1,24 +1,30 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const User = require('../models/user');
+const User = require('../models/user'); 
 const router = express.Router();
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
 // Register route
 router.post('/register', async (req, res) => {
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(req.body.password, salt);
+    const { name, email, password } = req.body;
+    
 
+    const userExist = await User.findOne({ email });
+    if (userExist) return res.status(400).json({ error: 'User already exists' });
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
     const user =  new User({
-        name: req.body.name,
-        email: req.body.email,  
+        name,
+        email,  
         password: hashedPassword,
     })
     const result = await user.save();
-    const {password, ...data}= await result.toJSON();
-    res.send(data)
+    const { password: pw, ...userData } = result. toJSON();
+    res.status(201).json({ msg: 'User registered successfully', user: userData });
+    // const {password, ...data}= await result.toJSON();
+    // res.send(data)
 });
 
 // Login route
@@ -31,12 +37,12 @@ router.post('/login', async (req, res) => {
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(400).json({ error: 'Wrong password' });
 
-    const token = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: '1d' });
+    const token = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: '2h' });
     res.cookie('jwt', token, {
       httpOnly: true,
-      maxAge: 24 * 60 * 60 * 1000, // 1 day
+      maxAge: 2 * 60 * 60 * 1000, // 2 hr
     });
-    res.json({ token });
+    res.send({ message: 'Logged in successfully'});
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
   }
@@ -48,9 +54,10 @@ router.get('/user', async (req, res) => {
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
     if (!decoded) return res.status(401).json({ error: 'Invalid token' });
-    const user = await User.findById(decoded.userId).select('-password');
+    const user = await User.findById(decoded.userId);
     if (!user) return res.status(404).json({ error: 'User not found' });
-    res.json(user);
+    const { password: pw, ...userData } = user.toObject();
+    res.json(userData);
   } catch (err) {
     res.status(401).json({ error: 'Invalid token' });
   }

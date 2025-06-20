@@ -1,7 +1,5 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
 import {
   Home,
   Activity,
@@ -42,6 +40,11 @@ import {
   CollapsibleContent,
 } from "@/components/ui/collapsible";
 
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import { logoutUser } from "@/lib/api"; // Import the logout function
+import { toast } from "@/hooks/use-toast"; 
+
 const mainLinks = [
   { href: "/", label: "Dashboard", icon: Home },
   { href: "/intake", label: "Daily Intake", icon: Activity },
@@ -61,7 +64,22 @@ const helpItems = [
 
 export function AppSidebar() {
   const pathname = usePathname();
-
+  const router = useRouter();
+  const handleLogout = async () => {
+    try {
+      await logoutUser();
+      toast({
+        title: "Logged out successfully",
+        description: "You have been signed out.",
+      });
+    } catch (error) {
+      toast({
+        title: "Logout failed",
+        description: "There was an error signing you out.",
+        variant: "destructive",
+      });
+    }
+  };
   return (
     <Sidebar className="w-64 shrink-0 h-screen border-r bg-white">
       <SidebarContent >
@@ -172,7 +190,7 @@ export function AppSidebar() {
               >
                 <DropdownMenuItem>Account</DropdownMenuItem>
                 <DropdownMenuItem>Billing</DropdownMenuItem>
-                <DropdownMenuItem>Sign out</DropdownMenuItem>
+                <DropdownMenuItem onClick={handleLogout}>Sign out</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </SidebarMenuItem>
