@@ -13,11 +13,19 @@ async function generateWorkoutPlan(intakeData) {
     - Goal: ${goal}
     - Fitness Level: ${level}
     - Duration: ${duration} mins
-    Return 4-6 exercises in this structure:
-    Exercise Name: ...
-    Sets: ...
-    Reps: ...
-    Description: ...
+    Return 4-6 exercises in this EXACT structure:
+    1. Exercise Name: [name]
+    Sets: [number]
+    Reps: [number or range]
+    Description: [detailed instructions]
+
+    2. Exercise Name: [name]
+    Sets: [number]
+    Reps: [number or range]
+    Description: [detailed instructions]
+
+    ...and so on for each exercise.
+
     The plan should include a mix of strength training, cardio, and flexibility exercises, with a focus on safety and effectiveness.`;
 
     try {
@@ -43,38 +51,42 @@ async function generateWorkoutPlan(intakeData) {
           .replace(/\*\*Exercise \d+:\s*/gi, "Exercise Name: ")
           .replace(/\*\*\s*/g, "")         // strip bold markdown
           .replace(/\*\s*/g, ""); 
-          // console.log("Generated text:", parseGeminiResponse(text));
+        // console.log("Raw response text:", text);
+        // console.log("Generated text:", parseGeminiResponse(text));
         return {
         cycleName: `${goal} (${level}) Plan`,
         exercises: parseGeminiResponse(text)
+        
         };
     } catch (error) {
         console.error("Error generating workout plan:", error);
         throw new Error("Failed to generate workout plan");
     }
 }
-
 function parseGeminiResponse(text) {
   const exercises = [];
-  const blocks = text.split(/\n\s*\n/); // split by blank lines
+  // Split by numbered exercises (1., 2., etc.)
+  const exerciseBlocks = text.split(/\d+\. Exercise Name:/).slice(1);
 
-  for (const block of blocks) {
+  for (const block of exerciseBlocks) {
     const ex = {};
-    const lines = block.split('\n');
+    const lines = block.split('\n').map(l => l.trim()).filter(Boolean);
 
-    for (const line of lines) {
-      if (/exercise name/i.test(line)) {
-        ex.name = line.split(':')[1]?.trim();
-      } else if (/sets/i.test(line)) {
+    // First line is the exercise name (already captured by split)
+    ex.name = lines[0]?.trim();
+
+    // Process remaining lines
+    for (let i = 1; i < lines.length; i++) {
+      const line = lines[i];
+      if (line.startsWith('Sets:')) {
         ex.sets = parseInt(line.split(':')[1]) || 3;
-      } else if (/reps/i.test(line)) {
+      } else if (line.startsWith('Reps:')) {
         ex.reps = line.split(':')[1]?.trim();
-      } else if (/description/i.test(line)) {
-        ex.description = line.split(':')[1]?.trim();
+      } else if (line.startsWith('Description:')) {
+        ex.description = line.split(':').slice(1).join(':').trim();
       }
     }
 
-    // Only push if name exists
     if (ex.name) exercises.push(ex);
   }
 
