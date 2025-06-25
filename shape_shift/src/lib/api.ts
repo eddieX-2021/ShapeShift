@@ -146,3 +146,106 @@ export async function addWorkoutToDays(
   if (!res.data) throw new Error("Failed to add workout to days");
   return res.data;
 }
+export interface DietMealItem {
+  name: string;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fats: number;
+  description?: string;
+}
+
+export interface Meals {
+  breakfast: DietMealItem[];
+  lunch: DietMealItem[];
+  dinner: DietMealItem[];
+  snacks: DietMealItem[];
+}
+
+export interface DietPlan {
+  _id: string;
+  cycleName: string;
+  meals: Meals;
+  createdAt: string;
+}
+
+//
+// ─── DIET ───────────────────────────────────────────────────────────────────────
+//
+export async function getTodayMeals(userId: string): Promise<Meals> {
+  const res = await api.get(`/diet/meals/today?userId=${userId}`);
+  return res.data.meals as Meals;
+}
+
+export async function getDietNutrition(userId: string): Promise<{
+  calories: number;
+  protein: number;
+  carbs: number;
+  fats: number;
+}> {
+  const res = await api.get(`/diet/nutrition?userId=${userId}`);
+  return res.data as { calories: number; protein: number; carbs: number; fats: number };
+}
+
+export async function addMealFromSearch(
+  userId: string,
+  mealName: string,
+  section: keyof Meals
+): Promise<Meals> {
+  const res = await api.post('/diet/meal/search', { userId, mealName, section });
+  return res.data.meals as Meals;
+}
+
+export async function deleteDietMealItem(
+  userId: string,
+  section: keyof Meals,
+  index: number
+): Promise<Meals> {
+  const res = await api.delete('/diet/meal', {
+    data: { userId, section, index },
+  });
+  return res.data.meals as Meals;
+}
+
+export async function addCustomMeal(
+  userId: string,
+  section: keyof Meals,
+  item: DietMealItem
+): Promise<Meals> {
+  const res = await api.post('/diet/meal/custom', { userId, section, item });
+  return res.data.meals as Meals;
+}
+
+export async function generateDietPlan(
+  userId: string,
+  goal: string,
+  description: string,
+  dietRestriction: string
+): Promise<Meals> {
+  const res = await api.post('/diet/generate', {
+    userId,
+    goal,
+    description,
+    dietRestriction,
+  });
+  return res.data.plan as Meals;
+}
+
+export async function saveDietPlan(
+  userId: string,
+  cycleName: string,
+  meals: Meals
+): Promise<DietPlan[]> {
+  const res = await api.post('/diet/plan', { userId, cycleName, meals });
+  return res.data.AIPlan as DietPlan[];
+}
+
+export async function listDietPlans(userId: string): Promise<DietPlan[]> {
+  const res = await api.get(`/diet/plans?userId=${userId}`);
+  return res.data.plans as DietPlan[];
+}
+
+export async function deleteDietPlan(userId: string, index: number): Promise<string> {
+  const res = await api.delete('/diet/plan', { data: { userId, index } });
+  return res.data.message as string;
+}
