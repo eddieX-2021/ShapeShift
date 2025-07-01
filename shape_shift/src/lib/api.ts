@@ -4,6 +4,38 @@ const api = axios.create({
   baseURL: 'http://localhost:5000/api',
   withCredentials: true,
 });
+export type MealSection = 'breakfast' | 'lunch' | 'dinner' | 'snacks';
+
+export interface MealItem {
+  name: string;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fats: number;
+  description?: string;
+}
+
+export interface Meals {
+  breakfast: MealItem[];
+  lunch: MealItem[];
+  dinner: MealItem[];
+  snacks: MealItem[];
+}
+
+export interface Nutrition {
+  calories: number;
+  protein: number;
+  carbs: number;
+  fats: number;
+}
+
+export interface DietPlan {
+  _id: string;
+  cycleName: string;
+  meals: Meals;
+  createdAt: string;
+}
+
 
 export async function loginUser(email: string, password: string) {
   try {
@@ -22,17 +54,18 @@ export async function loginUser(email: string, password: string) {
     }
   }
 }
-
 export async function getCurrentUser() {
-    try{
-        const res = await axios.get("http://localhost:5000/api/auth/user", { withCredentials: true });
-        return res.data;
-    }catch (error) {
-        console.error('Failed to fetch current user:', error);
-        throw error;
-    }
+  try {
+    const res = await axios.get(
+      "http://localhost:5000/api/auth/user",
+      { withCredentials: true }
+    );
+    return res.data;
+  } catch (error) {
+    console.error('Failed to fetch current user:', error);
+    throw error;
+  }
 }
-
 export async function registerUser(email: string, password: string) {
     try {
         const response = await axios.post("http://localhost:5000/api/auth/register", { email, password }, { withCredentials: true });
@@ -146,28 +179,8 @@ export async function addWorkoutToDays(
   if (!res.data) throw new Error("Failed to add workout to days");
   return res.data;
 }
-export interface DietMealItem {
-  name: string;
-  calories: number;
-  protein: number;
-  carbs: number;
-  fats: number;
-  description?: string;
-}
 
-export interface Meals {
-  breakfast: DietMealItem[];
-  lunch: DietMealItem[];
-  dinner: DietMealItem[];
-  snacks: DietMealItem[];
-}
 
-export interface DietPlan {
-  _id: string;
-  cycleName: string;
-  meals: Meals;
-  createdAt: string;
-}
 
 //
 // ─── DIET ───────────────────────────────────────────────────────────────────────
@@ -176,43 +189,32 @@ export async function getTodayMeals(userId: string): Promise<Meals> {
   const res = await api.get(`/diet/meals/today?userId=${userId}`);
   return res.data.meals as Meals;
 }
-
-export async function getDietNutrition(userId: string): Promise<{
-  calories: number;
-  protein: number;
-  carbs: number;
-  fats: number;
-}> {
+export async function getDietNutrition(userId: string): Promise<Nutrition> {
   const res = await api.get(`/diet/nutrition?userId=${userId}`);
-  return res.data as { calories: number; protein: number; carbs: number; fats: number };
+  return res.data as Nutrition;
 }
 
-export async function addMealFromSearch(
-  userId: string,
-  mealName: string,
-  section: keyof Meals
-): Promise<Meals> {
-  const res = await api.post('/diet/meal/search', { userId, mealName, section });
-  return res.data.meals as Meals;
-}
 
+// export async function addCustomMeal(
+//   userId: string,
+//   section: keyof Meals,
+//   item: DietMealItem
+// ): Promise<Meals> {
+//   const res = await api.post('/diet/meal/custom', { userId, section, item });
+//   return res.data.meals as Meals;
+// }
+export type DietPlanResponse = {
+  cycleName: string;
+  meals: Meals;
+};
 export async function deleteDietMealItem(
   userId: string,
-  section: keyof Meals,
+  section: MealSection,
   index: number
 ): Promise<Meals> {
   const res = await api.delete('/diet/meal', {
     data: { userId, section, index },
   });
-  return res.data.meals as Meals;
-}
-
-export async function addCustomMeal(
-  userId: string,
-  section: keyof Meals,
-  item: DietMealItem
-): Promise<Meals> {
-  const res = await api.post('/diet/meal/custom', { userId, section, item });
   return res.data.meals as Meals;
 }
 
@@ -228,24 +230,77 @@ export async function generateDietPlan(
     description,
     dietRestriction,
   });
-  return res.data.plan as Meals;
+  return res.data.meals as Meals;
 }
-
 export async function saveDietPlan(
   userId: string,
   cycleName: string,
   meals: Meals
 ): Promise<DietPlan[]> {
-  const res = await api.post('/diet/plan', { userId, cycleName, meals });
-  return res.data.AIPlan as DietPlan[];
-}
-
-export async function listDietPlans(userId: string): Promise<DietPlan[]> {
-  const res = await api.get(`/diet/plans?userId=${userId}`);
+  const res = await api.post('/diet/plan', {
+    userId,
+    cycleName,
+    meals,
+  });
   return res.data.plans as DietPlan[];
 }
 
-export async function deleteDietPlan(userId: string, index: number): Promise<string> {
-  const res = await api.delete('/diet/plan', { data: { userId, index } });
-  return res.data.message as string;
+
+export async function listDietPlans(
+  userId: string
+): Promise<DietPlan[]> {
+  const res = await api.get(`/diet/plans?userId=${userId}`);
+  return res.data.plans as DietPlan[];
+}
+export async function deleteDietPlan(
+  userId: string,
+  index: number
+): Promise<void> {
+  await api.delete('/diet/plan', { data: { userId, index } });
+}
+export async function applyDietPlanToToday(userId: string, planId: string) {
+  const res = await api.post('/diet/plan/apply', { userId, planId });
+  return res.data.meals as Meals;
+}
+export async function getMealSuggestions(
+  query: string
+): Promise<string[]> {
+  const res = await api.get(
+    `/diet/meal/suggestions?query=${encodeURIComponent(query)}`
+  );
+  return res.data.suggestions as string[];
+}
+
+export async function searchMeal(
+  userId: string,
+  mealName: string,
+  section: MealSection
+) {
+  const res = await fetch('/api/diet/meal/search', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ userId, mealName, section }),
+  });
+  return res.json();
+}
+
+export async function addMealFromSearch(
+  userId: string,
+  mealName: string,
+  section: MealSection
+): Promise<Meals> {
+  const res = await api.post('/diet/meal/add', {
+    userId,
+    mealName,
+    section,
+  });
+  return res.data.meals as Meals;
+}
+
+export async function applyGeneratedPlan(
+  userId: string,
+  meals: Meals
+): Promise<Meals> {
+  const res = await api.post('/diet/plan/apply-generated', { userId, meals });
+  return res.data.meals as Meals;
 }

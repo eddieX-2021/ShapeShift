@@ -1,4 +1,4 @@
-
+// page.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -7,41 +7,20 @@ import FoodUpload from '@/components/diet/FoodUpload';
 import MealSearch from '@/components/diet/MealSearch';
 import PlanGenerator from '@/components/diet/PlanGenerator';
 import MealPlanner from '@/components/diet/MealPlanner';
+
 import {
+  getCurrentUser,
   getTodayMeals,
   getDietNutrition,
   addMealFromSearch,
   deleteDietMealItem,
-  getCurrentUser,
+  Meals,
+  Nutrition,
+  MealSection,
 } from '@/lib/api';
 
-type MealSection = 'breakfast' | 'lunch' | 'dinner' | 'snacks';
-
-interface MealItem {
-  name: string;
-  calories: number;
-  protein: number;
-  carbs: number;
-  fats: number;
-  description?: string;
-}
-
-interface Meals {
-  breakfast: MealItem[];
-  lunch: MealItem[];
-  dinner: MealItem[];
-  snacks: MealItem[];
-}
-
-interface Nutrition {
-  calories: number;
-  protein: number;
-  carbs: number;
-  fats: number;
-}
-
 export default function DietPage() {
-  const [userId, setUserId] = useState<string>('');                       // no more `string | null`
+  const [userId, setUserId] = useState<string>('');
   const [meals, setMeals] = useState<Meals>({
     breakfast: [],
     lunch: [],
@@ -54,83 +33,69 @@ export default function DietPage() {
     carbs: 0,
     fats: 0,
   });
-  const goal = 2000; // your daily calorie goal
+  const goal = 2000;
 
-  // 1) Load current user, then fetch meals & nutrition
+  // Initialize user & load data
   useEffect(() => {
     (async () => {
-      try {
-        const user = (await getCurrentUser()) as { _id: string };      // :contentReference[oaicite:0]{index=0}
-        setUserId(user._id);
-
-        const [mealsData, nutritionData] = await Promise.all([
-          getTodayMeals(user._id),
-          getDietNutrition(user._id),
-        ]);
-        setMeals(mealsData);
-        setNutrition(nutritionData);
-      } catch (err) {
-        console.error('Error initializing diet page:', err);
-      }
+      const user = await getCurrentUser();
+      setUserId(user._id);
+      const [m, n] = await Promise.all([
+        getTodayMeals(user._id),
+        getDietNutrition(user._id),
+      ]);
+      setMeals(m);
+      setNutrition(n);
     })();
   }, []);
 
-  // 2) Helpers to re-fetch when you add/delete
+  // Helpers
   const fetchMeals = async () => {
     if (!userId) return;
-    try {
-      setMeals(await getTodayMeals(userId));
-    } catch (err) {
-      console.error('Failed to load meals', err);
-    }
+    setMeals(await getTodayMeals(userId));
   };
-
   const fetchNutrition = async () => {
     if (!userId) return;
-    try {
-      setNutrition(await getDietNutrition(userId));
-    } catch (err) {
-      console.error('Failed to load nutrition', err);
-    }
+    setNutrition(await getDietNutrition(userId));
   };
 
-  // 3) Add via search
-  const handleAdd = async (section: MealSection, mealName: string) => {
+  // Handlers (typed!)
+  const handleAdd = async (
+    section: MealSection,
+    mealName: string
+  ) => {
     if (!userId) return;
-    try {
-      await addMealFromSearch(userId, mealName, section);
-      await Promise.all([fetchMeals(), fetchNutrition()]);
-    } catch (err) {
-      console.error('Failed to add meal', err);
-    }
+    await addMealFromSearch(userId, mealName, section);
+    await Promise.all([fetchMeals(), fetchNutrition()]);
   };
 
-  // 4) Delete an item
-  const handleDelete = async (section: MealSection, index: number) => {
+  const handleDelete = async (
+    section: MealSection,
+    index: number
+  ) => {
     if (!userId) return;
-    try {
-      await deleteDietMealItem(userId, section, index);
-      await Promise.all([fetchMeals(), fetchNutrition()]);
-    } catch (err) {
-      console.error('Failed to delete meal', err);
-    }
+    await deleteDietMealItem(userId, section, index);
+    await Promise.all([fetchMeals(), fetchNutrition()]);
   };
 
   return (
     <div className="p-6 space-y-8">
       <h1 className="text-2xl font-bold">🥗 Diet Planner</h1>
-      {/* AI Plan generator */}
+
       <PlanGenerator
         userId={userId}
-        onPlanGenerated={(planMeals) => {
-         setMeals(planMeals);
+        onPlanGenerated={(planMeals: Meals) => {
+          setMeals(planMeals);
           fetchNutrition();
         }}
       />
 
       <NutritionSummary nutrition={nutrition} goal={goal} />
+
       <FoodUpload />
+
       <MealSearch onAdd={handleAdd} />
+
       <MealPlanner meals={meals} onDelete={handleDelete} />
     </div>
   );

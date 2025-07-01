@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
@@ -20,11 +21,12 @@ app.use(cookieParser());
 const authRoutes = require('./routes/auth');
 const intakeRoutes = require('./routes/intake');
 const exerciseRoutes = require('./routes/exercise');
+const dietRoutes = require('./routes/diet');
 
 
 app.use('/api/intake', intakeRoutes); // mount intake routes
 app.use('/api/auth', authRoutes);
 app.use('/api/exercise', exerciseRoutes); // mount exercise routes
-
+app.use('/api/diet', dietRoutes); // mount diet routes
 
 module.exports = app;

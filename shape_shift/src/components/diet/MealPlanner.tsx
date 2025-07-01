@@ -1,56 +1,67 @@
+// components/diet/MealPlanner.tsx
 'use client';
 
-interface MealItem {
-  name: string;
-  calories: number;
-  protein: number;
-  carbs: number;
-  fats: number;
-  description?: string;
-}
-
-interface Meals {
-  breakfast: MealItem[];
-  lunch: MealItem[];
-  dinner: MealItem[];
-  snacks: MealItem[];
-}
+import { Meals, MealItem } from '@/lib/api';
 
 interface MealPlannerProps {
   meals: Meals;
-  onDelete: (section: keyof Meals, index: number) => void;
+  onDelete: (section: keyof Meals, idx: number) => void;
 }
 
-export default function MealPlanner({ meals, onDelete }: MealPlannerProps) {
+export default function MealPlanner({
+  meals,
+  onDelete,
+}: MealPlannerProps) {
+  const sections = ['breakfast', 'lunch', 'dinner', 'snacks'] as const;
+
   return (
-    <div className="border rounded-lg p-4 shadow bg-white space-y-4">
+    <div className="border rounded-lg p-4 shadow bg-white space-y-6">
       <h2 className="text-xl font-semibold">🍽️ Your Meals Today</h2>
 
-      {(['breakfast', 'lunch', 'dinner', 'snacks'] as (keyof Meals)[]).map((section) => (
-        <div key={section} className="space-y-2">
-          <h3 className="text-md font-medium capitalize">{section}</h3>
-          {meals[section].length === 0 ? (
-            <div className="text-sm text-muted-foreground">No items yet.</div>
-          ) : (
-            meals[section].map((item, idx) => (
-              <div
-                key={idx}
-                className="flex justify-between items-center border p-2 rounded"
-              >
-                <div>
-                  {item.name} — {item.calories} kcal
-                </div>
-                <button
-                  className="text-red-500 text-sm"
-                  onClick={() => onDelete(section, idx)}
-                >
-                  Remove
-                </button>
+      {sections.map((section) => {
+        const items: MealItem[] = meals[section] ?? [];
+        return (
+          <div key={section} className="space-y-2">
+            <h3 className="text-lg font-semibold capitalize">
+              {section}
+            </h3>
+
+            {items.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                No items yet.
+              </p>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                {items.map((item, idx) => (
+                  <div
+                    key={idx}
+                    className="border rounded-xl p-4 shadow-sm bg-gray-50 hover:shadow-md transition"
+                  >
+                    <h4 className="font-semibold text-lg">
+                      {item.name}
+                    </h4>
+                    <p className="text-sm text-gray-600">
+                      {item.calories} kcal • {item.protein}g P •{' '}
+                      {item.carbs}g C • {item.fats}g F
+                    </p>
+                    {item.description && (
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {item.description}
+                      </p>
+                    )}
+                    <button
+                      className="mt-2 text-red-500 text-sm hover:underline"
+                      onClick={() => onDelete(section, idx)}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ))}
               </div>
-            ))
-          )}
-        </div>
-      ))}
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }
