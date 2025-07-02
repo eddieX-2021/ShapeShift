@@ -1,51 +1,115 @@
+// server/src/controllers/intakeController.js
 const IntakeEntry = require('../models/IntakeEntry');
 const moment = require('moment');
 const calculateNavyMethod = require('../utils/navyMethod');
 
 exports.checkIntakeToday = async (req, res) => {
-  const { userId } = req.query;
-  const today = moment().format('YYYY-MM-DD');
-  const entry = await IntakeEntry.findOne({ userId, date: today });
-
-  return res.json({ completed: !!entry });
+  try {
+    const { userId } = req.query;
+    const today = moment().format('YYYY-MM-DD');
+    const entry = await IntakeEntry.findOne({ userId, date: today });
+    return res.json({ completed: !!entry });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Server error' });
+  }
 };
 
 exports.submitIntake = async (req, res) => {
-  const { userId, weight, bmi, bodyFat, navyInputs } = req.body;
-  const today = moment().format('YYYY-MM-DD');
+  try {
+    const {
+      userId,
+      weight: weightRaw,
+      bmi:   bmiRaw,
+      bodyFat: bfManualRaw,
+      navyInputs
+    } = req.body;
 
-  const exists = await IntakeEntry.findOne({ userId, date: today });
-  if (exists) return res.status(400).json({ error: "Already submitted today" });
-
-  let bodyFatResult = null;
-
-  if (bodyFat) {
-    bodyFatResult = {
-      value: parseFloat(bodyFat),
-      estimated: false,
-    };
-  } else if (navyInputs) {
-    try {
-      const fatValue = calculateNavyMethod(navyInputs);
-      bodyFatResult = {
-        value: parseFloat(fatValue.toFixed(1)),
-        estimated: true,
-      };
-    } catch (err) {
-      return res.status(400).json({ error: "Invalid Navy Method inputs" });
+    // 1) Basic required checks
+    if (!userId) {
+      return res.status(400).json({ error: 'userId is required' });
     }
-  } else {
-    return res.status(400).json({ error: "Body fat input is required (manual or navyInputs)" });
+    const today = moment().format('YYYY-MM-DD');
+
+    // 2) Parse weight & BMI
+    const weight = parseFloat(weightRaw);
+    const bmi    = parseFloat(bmiRaw);
+    if (isNaN(weight)) {
+      return res.status(400).json({ error: 'Please enter a valid weight' });
+    }
+    if (isNaN(bmi)) {
+      return res.status(400).json({ error: 'Please enter a valid BMI' });
+    }
+
+    // 3) Build bodyFatResult
+    let bodyFatResult = null;
+
+    // → manual override
+    if (bfManualRaw !== undefined && bfManualRaw !== null && bfManualRaw !== '') {
+      const bfValue = parseFloat(bfManualRaw);
+      if (isNaN(bfValue)) {
+        return res.status(400).json({ error: 'Please enter a valid body-fat percentage' });
+      }
+      bodyFatResult = { method: 'manual', value: bfValue };
+    }
+    // → Navy formula
+    else if (navyInputs && typeof navyInputs === 'object') {
+      const { gender, height: hRaw, waist: wRaw, neck: nRaw, hip: hipRaw } = navyInputs;
+      const height = parseFloat(hRaw);
+      const waist  = parseFloat(wRaw);
+      const neck   = parseFloat(nRaw);
+      const hip    = hipRaw !== undefined ? parseFloat(hipRaw) : undefined;
+
+      if (!['male','female'].includes(gender)) {
+        return res.status(400).json({ error: 'Gender must be "male" or "female"' });
+      }
+      if (
+        isNaN(height) ||
+        isNaN(waist)  ||
+        isNaN(neck)   ||
+        (gender === 'female' && isNaN(hip))
+      ) {
+        return res
+          .status(400)
+          .json({ error: 'Please fill in all numeric fields for Navy method' });
+      }
+
+      const bfCalc = calculateNavyMethod({
+        Gender: gender,
+        Height: height,
+        Waist:  waist,
+        Neck:   neck,
+        Hip:    gender === 'female' ? hip : undefined,
+      });
+
+      if (isNaN(bfCalc)) {
+        return res
+          .status(400)
+          .json({ error: 'Body-fat calculation error. Check your measurements.' });
+      }
+
+      bodyFatResult = { method: 'navy', value: bfCalc };
+    }
+    // → nothing provided
+    else {
+      return res
+        .status(400)
+        .json({ error: 'You must provide body-fat manually or via Navy method' });
+    }
+
+    // 4) Save to Mongo
+    const entry = new IntakeEntry({
+      userId,
+      date:   today,
+      weight,
+      bmi,
+      bodyFat: bodyFatResult,
+    });
+
+    await entry.save();
+    return res.json({ message: 'Intake submitted successfully' });
+  } catch (err) {
+    console.error('submitIntake error:', err);
+    return res.status(500).json({ error: 'Server error' });
   }
-
-  const newEntry = new IntakeEntry({
-    userId,
-    date: today,
-    weight,
-    bmi,
-    bodyFat: bodyFatResult,
-  });
-
-  await newEntry.save();
-  return res.json({ message: "Intake submitted successfully" });
 };

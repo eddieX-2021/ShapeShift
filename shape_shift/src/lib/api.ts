@@ -35,8 +35,37 @@ export interface DietPlan {
   meals: Meals;
   createdAt: string;
 }
+export type NavyInputs = {
+  gender: "male" | "female";
+  height: number;
+  waist: number;
+  neck: number;
+  hip?: number;
+};
+export interface IntakePayload {
+  userId: string;
+  weight: number;
+  bmi: number;
+  // either `bodyFat` _or_ `navyInputs`
+  bodyFat?: string;
+  navyInputs?: NavyInputs;
+}
+export interface SubmitResponse {
+  message: string;
+}
+export async function checkIntake(userId: string): Promise<boolean> {
+  const res = await axios.get<{ completed: boolean }>("http://localhost:5000/api/intake/check", {
+    params: { userId },
+  });
+  return res.data.completed;
+}
 
-
+export async function submitIntakeEntry(
+  payload: IntakePayload
+): Promise<SubmitResponse> {
+  const res = await axios.post<SubmitResponse>("http://localhost:5000/api/intake/submit", payload);
+  return res.data;
+}
 export async function loginUser(email: string, password: string) {
   try {
     const response = await api.post("/auth/login", { email, password });
@@ -302,5 +331,17 @@ export async function applyGeneratedPlan(
   meals: Meals
 ): Promise<Meals> {
   const res = await api.post('/diet/plan/apply-generated', { userId, meals });
+  return res.data.meals as Meals;
+}
+export async function addCustomMeal(
+  userId: string,
+  section: MealSection,
+  item: MealItem
+): Promise<Meals> {
+  const res = await api.post('/diet/meal/custom', {
+    userId,
+    section,
+    item,
+  });
   return res.data.meals as Meals;
 }

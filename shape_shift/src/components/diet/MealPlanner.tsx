@@ -8,16 +8,12 @@ interface MealPlannerProps {
   onDelete: (section: keyof Meals, idx: number) => void;
 }
 
-export default function MealPlanner({
-  meals,
-  onDelete,
-}: MealPlannerProps) {
-  const sections = ['breakfast', 'lunch', 'dinner', 'snacks'] as const;
+export default function MealPlanner({ meals, onDelete }: MealPlannerProps) {
+  const sections = ['breakfast','lunch','dinner','snacks'] as const;
 
   return (
     <div className="border rounded-lg p-4 shadow bg-white space-y-6">
       <h2 className="text-xl font-semibold">🍽️ Your Meals Today</h2>
-
       {sections.map((section) => {
         const items: MealItem[] = meals[section] ?? [];
         return (
@@ -25,7 +21,6 @@ export default function MealPlanner({
             <h3 className="text-lg font-semibold capitalize">
               {section}
             </h3>
-
             {items.length === 0 ? (
               <p className="text-sm text-muted-foreground">
                 No items yet.
