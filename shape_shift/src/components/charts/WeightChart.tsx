@@ -1,64 +1,45 @@
-"use client";
-
-import { useEffect, useState } from "react";
+'use client';
+import { useEffect, useState } from 'react';
 import {
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  CartesianGrid,
-} from "recharts";
-import axios from "axios";
+  AreaChart, Area, XAxis, YAxis, Tooltip,
+  ResponsiveContainer, CartesianGrid
+} from 'recharts';
+import { fetchWeightData, Range } from '@/lib/api';
 
-export default function WeightChart({ range }: { range: string }) {
-  const [data, setData] = useState([]);
+interface Props { userId: string; range: Range; }
+
+export default function WeightChart({ userId, range }: Props) {
+  const [data, setData] = useState<{ date: string; weight: number }[]>([]);
 
   useEffect(() => {
-    axios
-      .get(`http://localhost:5000/api/weight-data/user123?range=${range}`)
-      .then((res) => {
-        const formatted = res.data.map((d: any) => ({
-          date: new Date(d.date).toLocaleDateString(),
-          weight: d.weight,
-        }));
-        setData(formatted);
+    console.log('WeightChart ➜ useEffect', { userId, range });
+    fetchWeightData(userId, range)
+      .then(d => {
+        console.log('WeightChart ← data', d);
+        setData(d);
       })
-      .catch((err) => {
-        console.error("Failed to fetch weight data:", err);
-      });
-  }, [range]);
+      .catch(e => console.error('WeightChart error', e));
+  }, [userId, range]);
+
+  if (!data.length) {
+    return <div className="h-[300px] flex items-center justify-center text-sm text-muted-foreground border rounded-lg">No weight data available.</div>;
+  }
 
   return (
-    <div className="h-[300px] w-full">
-      {data.length === 0 ? (
-        <div className="h-full flex items-center justify-center text-sm text-muted-foreground border rounded-lg">
-          No weight data available for this range.
-        </div>
-      ) : (
-        <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={data}>
-            <defs>
-              <linearGradient id="weightGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8} />
-                <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.1} />
-              </linearGradient>
-            </defs>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="date" />
-            <YAxis />
-            <Tooltip />
-            <Area
-              type="monotone"
-              dataKey="weight"
-              stroke="#3b82f6"
-              fill="url(#weightGradient)"
-              strokeWidth={2}
-            />
-          </AreaChart>
-        </ResponsiveContainer>
-      )}
-    </div>
+    <ResponsiveContainer width="100%" height={300}>
+      <AreaChart data={data}>
+        <defs>
+          <linearGradient id="weightGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8}/>
+            <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.1}/>
+          </linearGradient>
+        </defs>
+        <CartesianGrid strokeDasharray="3 3"/>
+        <XAxis dataKey="date"/>
+        <YAxis/>
+        <Tooltip/>
+        <Area type="monotone" dataKey="weight" stroke="#3b82f6" fill="url(#weightGrad)" strokeWidth={2}/>
+      </AreaChart>
+    </ResponsiveContainer>
   );
 }

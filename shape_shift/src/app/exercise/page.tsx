@@ -57,15 +57,15 @@ export default function Page() {
     async function fetchEverything() {
       // 1) Load user & AI plans
       const user = await getCurrentUser();
-      setUserId(user._id!);
+      setUserId(user.id!);
 
-      const aiPlans = await getAIPlans(user._id!);
+      const aiPlans = await getAIPlans(user.id!);
       setSavedPlans(aiPlans);
       if (aiPlans.length) setAiSuggestedPlan(aiPlans[0]);
 
       // 2) Load manual planner and cast it to our known type
       const manual = (await getManualPlanner(
-        user._id!
+        user.id!
       )) as ManualPlannerResponse;
 
       // 3) Convert lowercase keys → Title-case

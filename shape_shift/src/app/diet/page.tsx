@@ -50,10 +50,10 @@ export default function DietPage() {
   useEffect(() => {
     (async () => {
       const user = await getCurrentUser();
-      setUserId(user._id);
+      setUserId(user.id);
       const [initialMeals, initialNutrition] = await Promise.all([
-        getTodayMeals(user._id),
-        getDietNutrition(user._id),
+        getTodayMeals(user.id),
+        getDietNutrition(user.id),
       ]);
       setMeals(initialMeals);
       setNutrition(initialNutrition);

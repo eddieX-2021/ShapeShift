@@ -1,6 +1,7 @@
-"use client";
+'use client';
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -13,6 +14,7 @@ import {
 } from "@/components/ui/select";
 
 import {
+  getCurrentUser,
   checkIntake,
   submitIntakeEntry,
   IntakePayload,
@@ -20,26 +22,32 @@ import {
 } from "@/lib/api";
 
 export default function IntakeForm() {
+  const router = useRouter();
+
+  // ─── User / Submitted State ─────────────────────────
+  const [userId, setUserId] = useState<string | null>(null);
+  const [loadingUser, setLoadingUser] = useState(true);
   const [submitted, setSubmitted] = useState(false);
 
-  // form state
-  const [weight, setWeight] = useState("");
-  const [bmi, setBmi] = useState("");
-  const [method, setMethod] = useState<"direct" | "navy" | "">("");
-  const [bodyFat, setBodyFat] = useState("");
-
-  // navy inputs
-  const [gender, setGender] = useState<"male" | "female" | "">("");
-  const [height, setHeight] = useState("");
-  const [waist, setWaist] = useState("");
-  const [neck, setNeck] = useState("");
-  const [hips, setHips] = useState("");
-
-  const userId = "testUser"; // replace with your auth logic
-
-  // Poll on mount + every 60s
+  // ─── Fetch current user on mount ─────────────────────
   useEffect(() => {
+    getCurrentUser()
+      .then((u) => {
+        setUserId(u.id);
+      })
+      .catch((err) => {
+        console.error("Failed to fetch user:", err);
+      })
+      .finally(() => {
+        setLoadingUser(false);
+      });
+  }, []);
+
+  // ─── Poll intake status once we have a userId ────────
+  useEffect(() => {
+    if (!userId) return;
     let mounted = true;
+
     const fetchStatus = async () => {
       try {
         const done = await checkIntake(userId);
@@ -48,6 +56,7 @@ export default function IntakeForm() {
         console.error("checkIntake failed", e);
       }
     };
+
     fetchStatus();
     const id = setInterval(fetchStatus, 60_000);
     return () => {
@@ -56,7 +65,21 @@ export default function IntakeForm() {
     };
   }, [userId]);
 
+  // ─── Form State ───────────────────────────────────────
+  const [weight, setWeight] = useState("");
+  const [bmi, setBmi] = useState("");
+  const [method, setMethod] = useState<"direct" | "navy" | "">("");
+  const [bodyFat, setBodyFat] = useState("");
+  const [gender, setGender] = useState<"male" | "female" | "">("");
+  const [height, setHeight] = useState("");
+  const [waist, setWaist] = useState("");
+  const [neck, setNeck] = useState("");
+  const [hips, setHips] = useState("");
+
+  // ─── Submit Handler ──────────────────────────────────
   const handleSubmit = async () => {
+    if (!userId) return;
+
     const base: IntakePayload = {
       userId,
       weight: parseFloat(weight),
@@ -78,13 +101,18 @@ export default function IntakeForm() {
           };
 
     try {
-      const { message } = await submitIntakeEntry(payload);
-      console.log(message);
+      await submitIntakeEntry(payload);
       setSubmitted(true);
     } catch (e) {
       console.error("submitIntakeEntry failed", e);
+      alert("Failed to submit intake.");
     }
   };
+
+  // ─── Loading / Already Submitted States ──────────────
+  if (loadingUser) {
+    return <p>Loading...</p>;
+  }
 
   if (submitted) {
     return (
@@ -94,6 +122,7 @@ export default function IntakeForm() {
     );
   }
 
+  // ─── Form Markup ──────────────────────────────────────
   return (
     <form
       onSubmit={(e) => {
@@ -111,6 +140,7 @@ export default function IntakeForm() {
           placeholder="Enter weight"
           value={weight}
           onChange={(e) => setWeight(e.target.value)}
+          required
         />
       </div>
 
@@ -123,10 +153,11 @@ export default function IntakeForm() {
           placeholder="Enter BMI"
           value={bmi}
           onChange={(e) => setBmi(e.target.value)}
+          required
         />
       </div>
 
-      {/* Body Fat */}
+      {/* Body Fat Method & Inputs */}
       <div className="space-y-2 border rounded p-4">
         <Label>Body Fat Input Method</Label>
         <Select onValueChange={(v) => setMethod(v as any)}>
@@ -147,6 +178,7 @@ export default function IntakeForm() {
               step="any"
               value={bodyFat}
               onChange={(e) => setBodyFat(e.target.value)}
+              required
             />
           </>
         )}
@@ -170,6 +202,7 @@ export default function IntakeForm() {
               step="any"
               value={height}
               onChange={(e) => setHeight(e.target.value)}
+              required
             />
 
             <Label>Waist (cm)</Label>
@@ -178,6 +211,7 @@ export default function IntakeForm() {
               step="any"
               value={waist}
               onChange={(e) => setWaist(e.target.value)}
+              required
             />
 
             <Label>Neck (cm)</Label>
@@ -186,6 +220,7 @@ export default function IntakeForm() {
               step="any"
               value={neck}
               onChange={(e) => setNeck(e.target.value)}
+              required
             />
 
             {gender === "female" && (
@@ -196,6 +231,7 @@ export default function IntakeForm() {
                   step="any"
                   value={hips}
                   onChange={(e) => setHips(e.target.value)}
+                  required
                 />
               </>
             )}
@@ -203,9 +239,9 @@ export default function IntakeForm() {
         )}
       </div>
 
-      {/* Submit */}
+      {/* Submit Button */}
       <div className="col-span-1 md:col-span-3 pt-4">
-        <Button type="submit" className="w-full">
+        <Button type="submit" className="w-full" disabled={!method}>
           Submit All Intake
         </Button>
       </div>

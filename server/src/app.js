@@ -4,8 +4,11 @@ const cors = require('cors');
 const mongoose = require('mongoose');
 
 
+
+
 const connectDB = require('./config/db');
 connectDB();
+
 
 const app = express();
 app.use(cors({
@@ -14,21 +17,28 @@ app.use(cors({
 }));
 app.use(express.json()); // parse JSON body
 
+
 const cookieParser = require('cookie-parser');
 app.use(cookieParser());
 
+
 // Import routes
+const homeRoutes     = require("./routes/homeRoutes");
 const authRoutes = require('./routes/auth');
 const intakeRoutes = require('./routes/intake');
 const exerciseRoutes = require('./routes/exercise');
 const dietRoutes = require('./routes/diet');
-const weightRoutes  = require("./routes/weightRoutes");
-const bodyFatRoutes = require("./routes/bodyFatRoutes");
 
 
+
+
+app.use('/api/home',          homeRoutes);
 app.use('/api/intake', intakeRoutes); // mount intake routes
 app.use('/api/auth', authRoutes);
 app.use('/api/exercise', exerciseRoutes); // mount exercise routes
 app.use('/api/diet', dietRoutes); // mount diet routes
+
+
+
 
 module.exports = app;

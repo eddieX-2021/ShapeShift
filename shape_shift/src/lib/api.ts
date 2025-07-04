@@ -53,18 +53,106 @@ export interface IntakePayload {
 export interface SubmitResponse {
   message: string;
 }
-export async function checkIntake(userId: string): Promise<boolean> {
-  const res = await axios.get<{ completed: boolean }>("http://localhost:5000/api/intake/check", {
+export type Range = 'day' | 'week' | 'month' | 'year';
+export async function fetchWeightData(
+  userId: string,
+  range: Range
+): Promise<{ date: string; weight: number }[]> {
+  console.log('API ➜ fetchWeightData()', { userId, range });
+  const res = await api.get('/home/weight-data', {
+    params: { userId, range },
+  });
+  console.log('API ← fetchWeightData()', res.data);
+  return res.data;
+}
+
+export async function fetchBodyFatData(
+  userId: string,
+  range: Range
+): Promise<{ date: string; bodyFat: number }[]> {
+  console.log('API ➜ fetchBodyFatData()', { userId, range });
+  const res = await api.get('/home/body-fat-data', {
+    params: { userId, range },
+  });
+  console.log('API ← fetchBodyFatData()', res.data);
+  return res.data;
+}
+export async function fetchTodayIntake(
+  userId: string
+): Promise<{ bmi?: number }> {
+  const res = await api.get(`/home/intake/today`, { params: { userId } });
+  return res.data;
+}
+
+export async function fetchTodayExercises(
+  userId: string
+): Promise<{ id: string; name: string }[]> {
+  const res = await api.get(`/home/exercise/today`, { params: { userId } });
+  return res.data;
+}
+
+export async function completeExercise(
+  userId: string,
+  taskId: string
+): Promise<{ success: boolean }> {
+  const res = await api.post(`/home/exercise/complete`, { userId, taskId });
+  return res.data;
+}
+
+export async function fetchTodayMeals(
+  userId: string
+): Promise<
+  { id: string; name: string; mealType: string; calories: number }[]
+> {
+  console.log('API ➜ fetchTodayMeals()', { userId });
+  const res = await api.get('/home/diet/meals/today', {
     params: { userId },
   });
-  return res.data.completed;
+  console.log('API ← fetchTodayMeals()', res.data);
+  const mealsObj = res.data.meals || {
+    breakfast: [],
+    lunch: [],
+    dinner: [],
+    snacks: [],
+  };
+  const out: any[] = [];
+  for (const mealType of ['breakfast', 'lunch', 'dinner', 'snacks']) {
+    (mealsObj[mealType] || []).forEach((item: any, idx: number) => {
+      out.push({
+        id: `${mealType}-${idx}-${item.name}`,
+        name: item.name,
+        mealType,
+        calories: item.calories,
+      });
+    });
+  }
+  console.debug('API ← fetchTodayMeals transformed', out);
+  return out;
+}
+
+export async function fetchNutrition(
+  userId: string
+): Promise<{ consumed: number; target: number }> {
+  console.log('API ➜ fetchNutrition()', { userId });
+  const res = await api.get('/home/diet/nutrition', {
+    params: { userId },
+  });
+  console.log('API ← fetchNutrition()', res.data);
+  // You can replace 2000 with whatever your user target is
+  return { consumed: res.data.calories, target: 2000 };
+}
+export async function checkIntake(userId: string): Promise<boolean> {
+  const { data } = await api.get<{ completed: boolean }>('/intake/check', {
+    params: { userId },
+  });
+  return data.completed;
 }
 
 export async function submitIntakeEntry(
   payload: IntakePayload
 ): Promise<SubmitResponse> {
-  const res = await axios.post<SubmitResponse>("http://localhost:5000/api/intake/submit", payload);
-  return res.data;
+  const { data } = await api.post<SubmitResponse>('/intake/submit', payload);
+  return data;
 }
 export async function loginUser(email: string, password: string) {
   try {
@@ -83,18 +171,12 @@ export async function loginUser(email: string, password: string) {
     }
   }
 }
-export async function getCurrentUser() {
-  try {
-    const res = await axios.get(
-      "http://localhost:5000/api/auth/user",
-      { withCredentials: true }
-    );
-    return res.data;
-  } catch (error) {
-    console.error('Failed to fetch current user:', error);
-    throw error;
-  }
+export async function getCurrentUser(): Promise<{ id: string }> {
+  // assumes you have a GET /api/auth/me (or /api/auth/user) route that returns { _id, … }
+  const { data } = await api.get<{ _id: string }>('/auth/user');
+  return { id: data._id };
 }
+
 export async function registerUser(email: string, password: string) {
     try {
         const response = await axios.post("http://localhost:5000/api/auth/register", { email, password }, { withCredentials: true });
