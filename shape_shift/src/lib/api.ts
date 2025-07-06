@@ -54,6 +54,13 @@ export interface SubmitResponse {
   message: string;
 }
 export type Range = 'day' | 'week' | 'month' | 'year';
+export async function createCheckoutSession(): Promise<string> {
+  const { data } = await api.post<{ url: string }>('/stripe/checkout');
+  return data.url;
+}
+export async function sendFeedback( message: string) {
+  await api.post('/feedback/', { message });
+}
 
 export async function getSuggestedCalories(userId: string): Promise<number> {
   try {
