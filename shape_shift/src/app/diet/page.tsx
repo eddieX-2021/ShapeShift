@@ -2,7 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose } from '@/components/ui/dialog';
+import {
+  Dialog, DialogTrigger, DialogContent,
+  DialogHeader, DialogTitle, DialogDescription
+} from '@/components/ui/dialog';
 
 import NutritionSummary from '@/components/diet/NutritionSummary';
 import FoodUpload        from '@/components/diet/FoodUpload';
@@ -20,6 +23,7 @@ import {
   Meals,
   Nutrition,
   MealSection,
+  getSuggestedCalories,      // ← new import
 } from '@/lib/api';
 
 export default function DietPage() {
@@ -31,11 +35,10 @@ export default function DietPage() {
     calories: 0, protein: 0, carbs: 0, fats: 0
   });
 
+  const [goal, setGoal]           = useState<number>(2000);   // dynamic goal
   const [isCustomOpen, setIsCustomOpen] = useState(false);
 
-  const goal = 2000;
-
-  // fetch helper
+  // helper to reload meals + nutrition
   const refreshAll = async () => {
     if (!userId) return;
     const [m, n] = await Promise.all([
@@ -46,11 +49,16 @@ export default function DietPage() {
     setNutrition(n);
   };
 
-  // init
+  // initial load: get user, goal, and meals
   useEffect(() => {
     (async () => {
       const user = await getCurrentUser();
       setUserId(user.id);
+
+      // fetch suggested calories based on weight (fallback inside)
+      const suggested = await getSuggestedCalories(user.id);
+      setGoal(suggested);
+
       const [initialMeals, initialNutrition] = await Promise.all([
         getTodayMeals(user.id),
         getDietNutrition(user.id),
@@ -84,6 +92,7 @@ export default function DietPage() {
         }}
       />
 
+      {/* use dynamic goal here */}
       <NutritionSummary nutrition={nutrition} goal={goal} />
 
       <FoodUpload />
@@ -93,14 +102,11 @@ export default function DietPage() {
       {/* --- Daily Meals + single Add-Custom button --- */}
       <div className="space-y-4">
         <div className="flex justify-between items-center">
-          <h2 className="text-xl font-semibold">🍽️ Your Meals Today</h2>
-
-          {/* DialogTrigger will wrap this button */}
+          <h2 className="text-xl font-semibold">🍽️ Your Meals</h2>
           <Dialog open={isCustomOpen} onOpenChange={setIsCustomOpen}>
             <DialogTrigger asChild>
               <Button>Add Custom Meal</Button>
             </DialogTrigger>
-
             <DialogContent className="sm:max-w-md">
               <DialogHeader>
                 <DialogTitle>Add Custom Meal</DialogTitle>
@@ -108,7 +114,6 @@ export default function DietPage() {
                   Enter the details of your custom meal.
                 </DialogDescription>
               </DialogHeader>
-
               <CustomMealForm
                 userId={userId}
                 onCancel={() => setIsCustomOpen(false)}
@@ -118,8 +123,6 @@ export default function DietPage() {
                   setNutrition(await getDietNutrition(userId));
                 }}
               />
-
-
             </DialogContent>
           </Dialog>
         </div>

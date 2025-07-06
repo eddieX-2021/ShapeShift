@@ -54,14 +54,12 @@ const mainLinks = [
 
 const aiLinks = [
   { href: "/chatbot", label: "AI Chatbot", icon: Bot },
-  { href: "/progress", label: "Progress", icon: LineChart },
 ];
 
 const helpItems = [
-  { title: "Help Center", url: "#", icon: HelpCircle },
-  { title: "Support", url: "#", icon: LifeBuoy },
+  { title: 'Help Center', url: '/help-center', icon: HelpCircle },
+  { title: 'Feedback',    url: '/feedback',    icon: LifeBuoy },
 ];
-
 export function AppSidebar() {
   const pathname = usePathname();
   const router = useRouter();
@@ -188,8 +186,12 @@ export function AppSidebar() {
                 side="top"
                 className="w-[--radix-popper-anchor-width]"
               >
-                <DropdownMenuItem>Account</DropdownMenuItem>
-                <DropdownMenuItem>Billing</DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/account">Account</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/billing">Billing</Link>
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={handleLogout}>Sign out</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

@@ -10,8 +10,7 @@ const mealItem =  new mongoose.Schema({
 });
 
 const dailyMealSchema  = new mongoose.Schema({
-    userId: { type: mongoose.Types.ObjectId, required: true},
-    date: { type: Date, required: true },
+    userId: { type: mongoose.Types.ObjectId, required: true,unique: true },
     meals: {
         breakfast: [mealItem],
         lunch: [mealItem],

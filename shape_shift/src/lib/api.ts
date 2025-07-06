@@ -54,28 +54,41 @@ export interface SubmitResponse {
   message: string;
 }
 export type Range = 'day' | 'week' | 'month' | 'year';
+
+export async function getSuggestedCalories(userId: string): Promise<number> {
+  try {
+    // note: `api` is the axios instance with baseURL http://localhost:5000/api
+    const { data } = await api.get<{ weight?: number }>(
+      '/intake/latest-weight',
+      { params: { userId } }
+    );
+    const w = data.weight;
+    if (typeof w === 'number' && w > 0) {
+      return Math.round(w * 12);
+    }
+  } catch (err) {
+    console.warn('Could not fetch weight, using default goal', err);
+  }
+  return 2000;
+}
 export async function fetchWeightData(
   userId: string,
   range: Range
 ): Promise<{ date: string; weight: number }[]> {
-  console.log('API ➜ fetchWeightData()', { userId, range });
-  const res = await api.get('/home/weight-data', {
-    params: { userId, range },
-  });
-  console.log('API ← fetchWeightData()', res.data);
-  return res.data;
+  console.log('API ➜ fetchWeightData', { userId, range });
+  const { data } = await api.get('/home/weight-data', { params: { userId, range } });
+  console.log('API ← fetchWeightData', data);
+  return data;
 }
 
 export async function fetchBodyFatData(
   userId: string,
   range: Range
 ): Promise<{ date: string; bodyFat: number }[]> {
-  console.log('API ➜ fetchBodyFatData()', { userId, range });
-  const res = await api.get('/home/body-fat-data', {
-    params: { userId, range },
-  });
-  console.log('API ← fetchBodyFatData()', res.data);
-  return res.data;
+  console.log('API ➜ fetchBodyFatData', { userId, range });
+  const { data } = await api.get('/home/body-fat-data', { params: { userId, range } });
+  console.log('API ← fetchBodyFatData', data);
+  return data;
 }
 export async function fetchTodayIntake(
   userId: string
@@ -101,45 +114,31 @@ export async function completeExercise(
 
 export async function fetchTodayMeals(
   userId: string
-): Promise<
-  { id: string; name: string; mealType: string; calories: number }[]
-> {
-  console.log('API ➜ fetchTodayMeals()', { userId });
-  const res = await api.get('/home/diet/meals/today', {
-    params: { userId },
-  });
-  console.log('API ← fetchTodayMeals()', res.data);
-  const mealsObj = res.data.meals || {
-    breakfast: [],
-    lunch: [],
-    dinner: [],
-    snacks: [],
-  };
+): Promise<{ id: string; name: string; mealType: string; calories: number }[]> {
+  console.log('API ➜ fetchTodayMeals', { userId });
+  const { data } = await api.get('/home/diet/meals/today', { params: { userId } });
+  console.log('API ← fetchTodayMeals raw', data);
+  const mealsObj = data.meals ?? { breakfast: [], lunch: [], dinner: [], snacks: [] };
   const out: any[] = [];
-  for (const mealType of ['breakfast', 'lunch', 'dinner', 'snacks']) {
-    (mealsObj[mealType] || []).forEach((item: any, idx: number) => {
+  for (const mealType of ['breakfast','lunch','dinner','snacks']) {
+    (mealsObj[mealType] || []).forEach((item: any, idx: number) =>
       out.push({
         id: `${mealType}-${idx}-${item.name}`,
         name: item.name,
         mealType,
         calories: item.calories,
-      });
-    });
+      })
+    );
   }
-  console.debug('API ← fetchTodayMeals transformed', out);
+  console.log('API ← fetchTodayMeals transformed', out);
   return out;
 }
-
-export async function fetchNutrition(
-  userId: string
-): Promise<{ consumed: number; target: number }> {
-  console.log('API ➜ fetchNutrition()', { userId });
-  const res = await api.get('/home/diet/nutrition', {
-    params: { userId },
-  });
-  console.log('API ← fetchNutrition()', res.data);
-  // You can replace 2000 with whatever your user target is
-  return { consumed: res.data.calories, target: 2000 };
+export async function fetchNutrition(userId: string) {
+  const [nutri, target] = await Promise.all([
+    api.get<{ calories:number }>('/home/diet/nutrition', { params:{userId} }),
+    getSuggestedCalories(userId)
+  ]);
+  return { consumed: nutri.data.calories, target };
 }
 export async function checkIntake(userId: string): Promise<boolean> {
   const { data } = await api.get<{ completed: boolean }>('/intake/check', {
@@ -171,10 +170,25 @@ export async function loginUser(email: string, password: string) {
     }
   }
 }
-export async function getCurrentUser(): Promise<{ id: string }> {
-  // assumes you have a GET /api/auth/me (or /api/auth/user) route that returns { _id, … }
-  const { data } = await api.get<{ _id: string }>('/auth/user');
-  return { id: data._id };
+export interface CurrentUser {
+  id: string;
+  name: string;
+  email: string;
+}
+export async function getCurrentUser(): Promise<CurrentUser> {
+  // tell TS you expect an _id, name, and email
+  const { data } = await api.get<{
+    _id: string;
+    name: string;
+    email: string;
+  }>('/auth/user');
+
+  // map _id → id and pass name + email through
+  return {
+    id: data._id,
+    name: data.name,
+    email: data.email
+  };
 }
 
 export async function registerUser(email: string, password: string) {
@@ -348,26 +362,36 @@ export async function saveDietPlan(
   cycleName: string,
   meals: Meals
 ): Promise<DietPlan[]> {
-  const res = await api.post('/diet/plan', {
-    userId,
-    cycleName,
-    meals,
-  });
-  return res.data.plans as DietPlan[];
+  try {
+    const res = await api.post<{ plans: DietPlan[] }>('/diet/plan', {
+      userId,
+      cycleName,
+      meals,
+    });
+    return res.data.plans;
+  } catch (err: any) {
+    if (axios.isAxiosError(err) && err.response?.status === 409) {
+      // bubble up our JSON `{ error: '…' }`
+      throw new Error(err.response.data.error);
+    }
+    throw err;
+  }
 }
 
-
-export async function listDietPlans(
-  userId: string
-): Promise<DietPlan[]> {
-  const res = await api.get(`/diet/plans?userId=${userId}`);
-  return res.data.plans as DietPlan[];
+export async function listDietPlans(userId: string): Promise<DietPlan[]> {
+  const res = await api.get<{ plans: DietPlan[] }>('/diet/plans', {
+    params: { userId },
+  });
+  return res.data.plans;
 }
 export async function deleteDietPlan(
   userId: string,
   index: number
-): Promise<void> {
-  await api.delete('/diet/plan', { data: { userId, index } });
+): Promise<DietPlan[]> {
+  const res = await api.delete<{ plans: DietPlan[] }>('/diet/plan', {
+    data: { userId, index },
+  });
+  return res.data.plans;
 }
 export async function applyDietPlanToToday(userId: string, planId: string) {
   const res = await api.post('/diet/plan/apply', { userId, planId });

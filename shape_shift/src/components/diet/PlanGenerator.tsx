@@ -2,175 +2,187 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Input } from '@/components/ui/input';
+import { toast } from '@/hooks/use-toast';
+import { Input }  from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-
 import {
   generateDietPlan,
   saveDietPlan,
   listDietPlans,
   deleteDietPlan,
+  applyGeneratedPlan,
   Meals,
   DietPlan,
-  applyGeneratedPlan,    // ← import
 } from '@/lib/api';
 
-interface PlanGeneratorProps {
+interface Props {
   userId: string;
   onPlanGenerated: (meals: Meals) => void;
 }
 
-export default function PlanGenerator({
-  userId,
-  onPlanGenerated,
-}: PlanGeneratorProps) {
-  const [goal, setGoal] = useState('');
-  const [description, setDescription] = useState('');
-  const [dietRestriction, setDietRestriction] =
-    useState('');
-  const [generated, setGenerated] = useState<Meals | null>(
-    null
-  );
-  const [cycleName, setCycleName] = useState('');
-  const [plans, setPlans] = useState<DietPlan[]>([]);
+export default function PlanGenerator({ userId, onPlanGenerated }: Props) {
+  const [goal, setGoal]                 = useState('');
+  const [description, setDescription]   = useState('');
+  const [dietRestriction, setDietRestriction] = useState('');
+  const [generated, setGenerated]       = useState<Meals | null>(null);
+  const [cycleName, setCycleName]       = useState('');
+  const [plans, setPlans]               = useState<DietPlan[]>([]);
+  const [isGenerating, setIsGenerating] = useState(false);
 
-  // Load saved plans
+  // load saved plans
   useEffect(() => {
     if (!userId) return;
-    listDietPlans(userId).then(setPlans);
+    listDietPlans(userId)
+      .then(setPlans)
+      .catch((e) => {
+        console.error(e);
+        toast({
+          title: 'Error',
+          description: 'Couldn’t load saved plans.',
+          variant: 'destructive',
+        });
+      });
   }, [userId]);
 
   const handleGenerate = async () => {
     if (!userId) return;
-    const plan = await generateDietPlan(
-      userId,
-      goal,
-      description,
-      dietRestriction
-    );
-    setGenerated(plan);
-    onPlanGenerated(plan);
+    setIsGenerating(true);
+    try {
+      const meals = await generateDietPlan(userId, goal, description, dietRestriction);
+      setGenerated(meals);
+      onPlanGenerated(meals);
+    } catch (e) {
+      console.error(e);
+      toast({
+        title: 'Error',
+        description: 'Failed to generate plan.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const handleSave = async () => {
-    if (!generated || !userId) return;
-    const updated = await saveDietPlan(
-      userId,
-      cycleName || Date.now().toString(),
-      generated
-    );
-    setPlans(updated);
-    setCycleName('');
-  };
-  const handleApply = async () => {
-    if (!generated || !userId) return;
-    // this writes generated to today’s meals
-    await applyGeneratedPlan(userId, generated);
-    // optionally re-load nutrition or meals:
-    onPlanGenerated(generated);
+    if (!generated) return;
+    try {
+      const updated = await saveDietPlan(
+        userId,
+        cycleName || Date.now().toString(),
+        generated
+      );
+      setPlans(updated);
+      setCycleName('');
+      toast({ title: 'Saved!', description: 'Your plan was saved.' });
+    } catch (err: any) {
+      toast({
+        title: 'Couldn’t save plan',
+        description: err.message,
+        variant: 'destructive',
+      });
+    }
   };
 
+  const handleApply = async () => {
+    if (!generated) return;
+    try {
+      await applyGeneratedPlan(userId, generated);
+      onPlanGenerated(generated);
+      toast({ title: 'Applied!', description: 'Plan applied to today.' });
+    } catch (e) {
+      console.error(e);
+      toast({
+        title: 'Error',
+        description: 'Failed to apply plan.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleDelete = async (idx: number) => {
+    try {
+      const updated = await deleteDietPlan(userId, idx);
+      setPlans(updated);
+      toast({ title: 'Deleted', description: 'Plan removed.' });
+    } catch (e) {
+      console.error(e);
+      toast({
+        title: 'Error',
+        description: 'Failed to delete plan.',
+        variant: 'destructive',
+      });
+    }
+  };
 
   return (
-    <div className="border rounded-lg p-4 shadow bg-white space-y-4">
-      <h2 className="text-xl font-semibold">
-        🤖 Generate AI Plan
-      </h2>
+    <div className="p-6 bg-white rounded-lg shadow space-y-6">
+      <h2 className="text-2xl font-semibold">🤖 Generate AI Plan</h2>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-        <Input
-          placeholder="Goal (e.g. lose weight)"
-          value={goal}
-          onChange={(e) => setGoal(e.target.value)}
-        />
-        <Input
-          placeholder="Description (e.g. 200 lb)"
-          value={description}
-          onChange={(e) =>
-            setDescription(e.target.value)
-          }
-        />
-        <Input
-          placeholder="Restrictions (e.g. vegan)"
-          value={dietRestriction}
-          onChange={(e) =>
-            setDietRestriction(e.target.value)
-          }
-        />
+      {/* Inputs */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Input placeholder="Goal" value={goal} onChange={(e) => setGoal(e.target.value)} />
+        <Input placeholder="Description" value={description} onChange={(e) => setDescription(e.target.value)} />
+        <Input placeholder="Restrictions" value={dietRestriction} onChange={(e) => setDietRestriction(e.target.value)} />
       </div>
 
-      <Button onClick={handleGenerate}>
-        Generate Plan
+      <Button onClick={handleGenerate} disabled={isGenerating}>
+        {isGenerating ? 'Generating…' : 'Generate Plan'}
       </Button>
 
+      {/* Preview + Save */}
       {generated && (
-        <div className="space-y-2">
+        <div className="p-4 bg-gray-50 rounded space-y-4">
           <h3 className="font-medium">Preview:</h3>
-          {(
-            ['breakfast', 'lunch', 'dinner', 'snacks'] as const
-          ).map((sec) => (
+          {(['breakfast','lunch','dinner','snacks'] as const).map((sec) => (
             <div key={sec}>
-              <strong>
-                {sec.charAt(0).toUpperCase() + sec.slice(1)}
-                :
-              </strong>{' '}
+              <strong>{sec.charAt(0).toUpperCase()+sec.slice(1)}:</strong>{' '}
               {generated[sec].map((m) => m.name).join(', ')}
             </div>
           ))}
-
-          <Input
-            placeholder="Cycle name to save"
-            value={cycleName}
-            onChange={(e) =>
-              setCycleName(e.target.value)
-            }
-          />
-
-          <div className="flex gap-2">
-            <Button onClick={handleSave}>
-              Save Plan
-            </Button>
-            <Button
-              variant="secondary"
-              onClick={handleApply}
-            >
-              Apply to Today
-            </Button>
-          </div>
+          {plans.length < 2 ? (
+            <>
+              <Input
+                placeholder="Cycle name to save"
+                value={cycleName}
+                onChange={(e) => setCycleName(e.target.value)}
+              />
+              <div className="flex gap-2">
+                <Button onClick={handleSave} disabled={!cycleName}>
+                  Save Plan
+                </Button>
+                <Button variant="outline" onClick={handleApply}>
+                  Apply to Today
+                </Button>
+              </div>
+            </>
+          ) : (
+            <p className="text-sm text-red-600">
+              You’ve reached the maximum of 2 saved plans.
+            </p>
+          )}
         </div>
       )}
 
+      {/* Saved Plans List */}
       {plans.length > 0 && (
-        <div className="mt-4">
-          <h3 className="font-medium">
-            Saved Plans:
-          </h3>
-          <ul className="space-y-1 text-sm">
-            {plans.map((p, i) => (
-              <li
-                key={p._id}
-                className="flex justify-between"
-              >
-                <span>
-                  {p.cycleName} (
-                  {new Date(p.createdAt).toLocaleDateString()}
-                  )
+        <div className="space-y-2">
+          <h3 className="text-xl font-medium">💾 Saved Plans ({plans.length}/2)</h3>
+          {plans.map((p, i) => (
+            <div
+              key={p._id}
+              className="flex justify-between items-center p-3 bg-white border rounded-lg shadow-sm"
+            >
+              <div>
+                <strong>{p.cycleName}</strong>{' '}
+                <span className="text-sm text-gray-500">
+                  ({new Date(p.createdAt).toLocaleDateString()})
                 </span>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={async () => {
-                    await deleteDietPlan(userId, i);
-                    setPlans(
-                      await listDietPlans(userId)
-                    );
-                  }}
-                >
-                  Delete
-                </Button>
-              </li>
-            ))}
-          </ul>
+              </div>
+              <Button size="sm" variant="outline" onClick={() => handleDelete(i)}>
+                Delete
+              </Button>
+            </div>
+          ))}
         </div>
       )}
     </div>

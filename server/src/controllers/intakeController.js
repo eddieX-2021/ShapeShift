@@ -113,3 +113,28 @@ exports.submitIntake = async (req, res) => {
     return res.status(500).json({ error: 'Server error' });
   }
 };
+
+exports.getLatesetWeight = async (req, res) => {
+  try {
+    const { userId } = req.query;
+    if (!userId) {
+      return res.status(400).json({ error: 'userId query parameter is required' });
+    }
+
+    // Find the most recent entry by date (ISO string sort works for YYYY-MM-DD)
+    const latest = await IntakeEntry
+      .findOne({ userId })
+      .sort({ date: -1 })
+      .lean();
+
+    if (latest && typeof latest.weight === 'number') {
+      return res.json({ weight: latest.weight });
+    } else {
+      // no entries found
+      return res.json({ weight: null });
+    }
+  } catch (err) {
+    console.error('getLatesetWeight error:', err);
+    return res.status(500).json({ error: 'Server error' });
+  }
+};

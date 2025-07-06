@@ -17,53 +17,70 @@ function toObjectId(id) {
     ? new mongoose.Types.ObjectId(id)
     : id;
 }
-// ————————————————————————————————
-// 1) WEIGHT HISTORY
 exports.getWeightData = async (req, res) => {
   try {
     const userId = getUserId(req);
+    const { range } = req.query;
     if (!userId) return res.status(400).json({ error: 'userId is required' });
 
+    // compute cutoff moment
+    let start = moment().utc();
+    switch (range) {
+      case 'day':   start = start.startOf('day');      break;
+      case 'week':  start = start.subtract(7, 'days'); break;
+      case 'month': start = start.subtract(1, 'month');break;
+      case 'year':  start = start.subtract(1, 'year'); break;
+      default:      start = moment(0);
+    }
 
-    const entries = await IntakeEntry
-      .find({ userId })       // stored as String
-      .sort({ date: 1 });
+    // format back to "YYYY-MM-DD" to match your stored strings
+    const cutoff = start.format('YYYY-MM-DD');
 
+    // now string-wise compare and sort lexicographically
+    const entries = await IntakeEntry.find({
+      userId,
+      date: { $gte: cutoff }
+    }).sort({ date: 1 });
 
     const data = entries.map(e => ({
       date:   e.date,
       weight: e.weight
     }));
-
-
     return res.json(data);
+
   } catch (err) {
     console.error('getWeightData:', err);
     return res.status(500).json({ error: 'Failed to fetch weight data' });
   }
 };
-
-
-// ————————————————————————————————
-// 2) BODY-FAT HISTORY
 exports.getBodyFatData = async (req, res) => {
   try {
     const userId = getUserId(req);
+    const { range } = req.query;
     if (!userId) return res.status(400).json({ error: 'userId is required' });
 
+    let start = moment().utc();
+    switch (range) {
+      case 'day':   start = start.startOf('day');      break;
+      case 'week':  start = start.subtract(7, 'days'); break;
+      case 'month': start = start.subtract(1, 'month');break;
+      case 'year':  start = start.subtract(1, 'year'); break;
+      default:      start = moment(0);
+    }
 
-    const entries = await IntakeEntry
-      .find({ userId })
-      .sort({ date: 1 });
+    const cutoff = start.format('YYYY-MM-DD');
 
+    const entries = await IntakeEntry.find({
+      userId,
+      date: { $gte: cutoff }
+    }).sort({ date: 1 });
 
     const data = entries.map(e => ({
       date:    e.date,
       bodyFat: e.bodyFat?.value ?? null
     }));
-
-
     return res.json(data);
+
   } catch (err) {
     console.error('getBodyFatData:', err);
     return res.status(500).json({ error: 'Failed to fetch body-fat data' });

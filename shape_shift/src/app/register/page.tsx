@@ -51,7 +51,17 @@ export default function RegisterPage() {
             <div className="text-center text-sm">
               Already have an account? <a href="/login" className="underline">Login</a>
             </div>
+            <div className="text-center text-sm mt-2">
+              <button
+                  type="button"
+                  className="underline text-blue-600 hover:text-blue-800"
+                  onClick={() => router.push('/')}
+                >
+                  Home
+                </button>
+            </div>
           </form>
+          
         </CardContent>
       </Card>
     </div>

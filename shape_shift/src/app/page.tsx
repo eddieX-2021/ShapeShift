@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useRouter }    from 'next/navigation';
+import { useRouter } from 'next/navigation';
 
 import {
   getCurrentUser,
@@ -15,23 +15,26 @@ import { Card, CardContent }          from '@/components/ui/card';
 import { Button }                     from '@/components/ui/button';
 import { Skeleton }                   from '@/components/ui/skeleton';
 
-import WeightChart    from '@/components/charts/WeightChart';
-import BodyFatChart   from '@/components/charts/BodyFatChart';
-import BmiGaugeChart  from '@/components/charts/BmiSemiCircle';
-import TodoExercise   from '@/components/home/TodoExercise';
-import TodoDiet       from '@/components/home/TodoDiet';
+import WeightChart   from '@/components/charts/WeightChart';
+import BodyFatChart  from '@/components/charts/BodyFatChart';
+import BmiGaugeChart from '@/components/charts/BmiSemiCircle';
+import TodoExercise  from '@/components/home/TodoExercise';
+import TodoDiet      from '@/components/home/TodoDiet';
 import type { Range } from '@/lib/api';
+
 export default function HomePage() {
-  const [user,   setUser]   = useState<{ id: string } | null>(null);
-  const [range, setRange] = useState<Range>('week');
+  const [user, setUser]     = useState<{ id: string; name: string } | null>(null);
+  const [range, setRange]   = useState<Range>('week');
   const [weightData, setWeightData]   = useState<any[]>([]);
   const [bodyFatData, setBodyFatData] = useState<any[]>([]);
-  const [bmi,        setBmi]          = useState<number|null>(null);
-  const [loading,    setLoading]      = useState(true);
+  const [bmi, setBmi]       = useState<number|null>(null);
+  const [loading, setLoading] = useState(true);
   const router = useRouter();
 
+  // Whenever `range` changes, reload all three
   useEffect(() => {
     const load = async () => {
+      setLoading(true);
       try {
         const u = await getCurrentUser();
         setUser(u);
@@ -52,6 +55,7 @@ export default function HomePage() {
     load();
   }, [range]);
 
+  // If not logged in
   if (!user) {
     return (
       <div className="p-10 text-center">
@@ -65,12 +69,16 @@ export default function HomePage() {
     );
   }
 
-  if (loading) return <Skeleton className="h-[400px] w-full" />;
+  if (loading) {
+    return <Skeleton className="h-[400px] w-full" />;
+  }
 
   return (
     <div className="p-6 space-y-10">
-      <h1 className="text-2xl font-bold">📈 Your Progress</h1>
+      {/* 1) Personalized greeting */}
+      <h1 className="text-3xl font-semibold">Welcome, {user.name}!</h1>
 
+      {/* 2) Tabs controlling all three charts */}
       <Tabs value={range} onValueChange={(v) => setRange(v as Range)}>
         <TabsList>
           <TabsTrigger value="day">Day</TabsTrigger>
@@ -80,7 +88,7 @@ export default function HomePage() {
         </TabsList>
       </Tabs>
 
-      {/* Weight */}
+      {/* Weight Chart */}
       <section className="rounded-lg border p-4 shadow">
         <h2 className="text-lg font-semibold mb-2">Weight</h2>
         <Card>
@@ -93,20 +101,7 @@ export default function HomePage() {
         </Card>
       </section>
 
-      {/* BMI */}
-      <section className="rounded-lg border p-4 shadow">
-        <h2 className="text-lg font-semibold mb-2">BMI</h2>
-        <Card>
-          <CardContent>
-            {bmi === null
-              ? <Button onClick={() => router.push('/intake')}>Add BMI Entry</Button>
-              : <BmiGaugeChart bmi={bmi} />
-            }
-          </CardContent>
-        </Card>
-      </section>
-
-      {/* Body Fat */}
+      {/* Body-Fat Chart */}
       <section className="rounded-lg border p-4 shadow">
         <h2 className="text-lg font-semibold mb-2">Body Fat</h2>
         <Card>
@@ -114,6 +109,19 @@ export default function HomePage() {
             {bodyFatData.length === 0
               ? <Button onClick={() => router.push('/intake')}>Add Body Fat</Button>
               : <BodyFatChart userId={user.id} range={range} />
+            }
+          </CardContent>
+        </Card>
+      </section>
+
+      {/* BMI Gauge moved below Body-Fat */}
+      <section className="rounded-lg border p-4 shadow">
+        <h2 className="text-lg font-semibold mb-2">BMI</h2>
+        <Card>
+          <CardContent>
+            {bmi === null
+              ? <Button onClick={() => router.push('/intake')}>Add BMI Entry</Button>
+              : <BmiGaugeChart bmi={bmi} />
             }
           </CardContent>
         </Card>
