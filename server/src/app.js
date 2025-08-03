@@ -12,14 +12,27 @@ connectDB();
 
 
 
-const FRONTEND_URL = process.env.CLIENT_URL || 'http://localhost:3000';
+const FRONTEND = (process.env.CLIENT_URL || '').replace(/\/$/, '');
 const app = express();
-app.use(cors({
-  origin: FRONTEND_URL, // or your frontend URL
-  credentials: true
-}));
-app.use(express.json()); 
+app.use(
+  cors({
+    origin: (incomingOrigin, callback) => {
+      // allow non-browser or server calls
+      if (!incomingOrigin) return callback(null, true);
+      // exact match for prod
+      if (incomingOrigin === FRONTEND) return callback(null, true);
+      // any subdomain of vercel.app
+      if (/^https?:\/\/.+\.vercel\.app$/.test(incomingOrigin)) {
+        return callback(null, true);
+      }
+      console.warn('Blocked CORS from', incomingOrigin);
+      callback(new Error('Not allowed by CORS'), false);
+    },
+    credentials: true,
+  })
+);
 
+app.use(express.json());
 const cookieParser = require('cookie-parser');
 app.use(cookieParser());
 
