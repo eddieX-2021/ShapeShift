@@ -14,9 +14,11 @@ connectDB();
 
 const FRONTEND_URL = process.env.CLIENT_URL || 'http://localhost:3000';
 const app = express();
-app.use(cors());
-
-app.use(express.json());
+app.use(cors({
+  origin: FRONTEND_URL, // or your frontend URL
+  credentials: true
+}));
+app.use(express.json()); 
 
 const cookieParser = require('cookie-parser');
 app.use(cookieParser());
