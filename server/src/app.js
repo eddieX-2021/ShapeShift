@@ -10,30 +10,14 @@ const connectDB = require('./config/db');
 connectDB();
 
 
+
+
+const FRONTEND_URL = process.env.CLIENT_URL || 'http://localhost:3000';
 const app = express();
-
-// Read your primary front-end URL (production) and the current Vercel preview URL:
-const PROD_URL    = (process.env.CLIENT_URL || '').replace(/\/$/, '');
-const VERCEL_URL  = process.env.VERCEL_URL
-  ? `https://${process.env.VERCEL_URL}`
-  : null;
-
-// Build an array of allowed origins:
-const allowedOrigins = [PROD_URL];
-if (VERCEL_URL) allowedOrigins.push(VERCEL_URL);
-
-// CORS middleware:
 app.use(cors({
-  origin: (incomingOrigin, callback) => {
-    // Allow no-origin requests (e.g. cURL) or any of our hosts
-    if (!incomingOrigin || allowedOrigins.includes(incomingOrigin)) {
-      callback(null, true);
-    } else {
-      console.warn('Blocked CORS from', incomingOrigin);
-      callback(new Error('Not allowed by CORS'), false);
-    }
-  },
-  credentials: true
+  origin: FRONTEND_URL, // or your frontend URL
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
 app.use(express.json());
