@@ -10,9 +10,10 @@ const connectDB = require('./config/db');
 connectDB();
 
 
+const FRONTEND_URL = process.env.CLIENT_URL || 'http://localhost:3000';
 const app = express();
 app.use(cors({
-  origin: 'http://localhost:3000', // or your frontend URL
+  origin: FRONTEND_URL, // or your frontend URL
   credentials: true
 }));
 app.use(express.json()); // parse JSON body
