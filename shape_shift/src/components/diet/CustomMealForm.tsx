@@ -17,13 +17,11 @@ import { addCustomMeal } from '@/lib/api';
 interface CustomMealFormProps {
   userId: string;
   onAdded: (meals: Meals) => void;
-  onCancel: () => void;
 }
 
 export default function CustomMealForm({
   userId,
   onAdded,
-  onCancel,
 }: CustomMealFormProps) {
   const [section, setSection] = useState<MealSection>('breakfast');
   const [name, setName] = useState('');

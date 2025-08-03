@@ -1,4 +1,4 @@
-import { cookies } from "next/headers";
+
 import ClientLayout from "./ClientLayout";
 import "./globals.css";
 

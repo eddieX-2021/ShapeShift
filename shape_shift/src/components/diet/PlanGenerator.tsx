@@ -74,10 +74,11 @@ export default function PlanGenerator({ userId, onPlanGenerated }: Props) {
       setPlans(updated);
       setCycleName('');
       toast({ title: 'Saved!', description: 'Your plan was saved.' });
-    } catch (err: any) {
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Unknown error';
       toast({
         title: 'Couldn’t save plan',
-        description: err.message,
+        description: msg,
         variant: 'destructive',
       });
     }

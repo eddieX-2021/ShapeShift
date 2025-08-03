@@ -11,7 +11,7 @@ import { useRouter } from "next/navigation"
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog"
 import { ToastContainer, toast } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
-
+import Image from 'next/image'
 
 export function LoginForm({
   className,
@@ -31,10 +31,13 @@ export function LoginForm({
       // Store token for subsequent API calls
        toast.success(message)
       router.push('/')
-    } catch (err: any) {
-      const msg = err.response?.data?.error || err.message || 'Login failed'
-      toast.error(msg, { position: 'top-right' })
-    } finally {
+    } catch (err: unknown) {
+    const msg =
+      typeof err === 'object' && err !== null && 'message' in err
+        ? (err as { message: string }).message
+        : 'Login failed';
+    toast.error(msg, { position: 'top-right' });
+  } finally {
       setIsLoading(false)
     }
   }
@@ -111,12 +114,14 @@ export function LoginForm({
           </form>
 
           <div className="bg-muted relative hidden md:block">
-            <img
-              src="/images.jpg"
-              alt="Image"
-              className="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
-            />
-          </div>
+  <Image
+    src="/images.jpg"
+    alt="Image"
+    fill
+    className="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
+  />
+</div>
+
         </CardContent>
       </Card>
 

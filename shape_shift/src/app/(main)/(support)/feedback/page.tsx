@@ -11,7 +11,9 @@ export default function FeedbackPage() {
   const [status,  setStatus]  = useState<'idle' | 'success' | 'error'>('idle');
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e: any) => {
+  const handleSubmit = async (
+    e: React.FormEvent<HTMLFormElement>
+  ): Promise<void> => {
     e.preventDefault();
     if (!message.trim()) return;
     setLoading(true);

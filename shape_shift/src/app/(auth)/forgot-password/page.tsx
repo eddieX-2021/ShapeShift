@@ -1,22 +1,30 @@
-'use client';
+"use client";
 
-import { useState, FormEvent } from 'react';
-import { ToastContainer, toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
-import { forgotPassword } from '@/lib/api';  // ← NEW
+import { useState, FormEvent } from "react";
+import axios from "axios";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import { forgotPassword } from "@/lib/api";
 
 export default function ForgotPasswordPage() {
-  const [email, setEmail] = useState('');
-  const [msg, setMsg] = useState('');
+  const [email, setEmail] = useState("");
+  const [msg, setMsg] = useState("");
 
   const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     try {
       const { message } = await forgotPassword(email);
-      toast.success('Reset link sent! Check your inbox.');
+      toast.success("Reset link sent! Check your inbox.");
       setMsg(message);
-    } catch (err: any) {
-      setMsg(err.response?.data?.error || 'Error sending email');
+    } catch (err: unknown) {
+      // Extract message if AxiosError, else fallback
+      const errMsg =
+        axios.isAxiosError(err) && err.response?.data?.error
+          ? err.response.data.error
+          : err instanceof Error
+          ? err.message
+          : "Error sending email";
+      setMsg(errMsg);
     }
   };
 
@@ -29,7 +37,7 @@ export default function ForgotPasswordPage() {
           type="email"
           placeholder="Your email"
           value={email}
-          onChange={e => setEmail(e.target.value)}
+          onChange={(e) => setEmail(e.target.value)}
           required
           className="w-full p-2 border rounded"
         />

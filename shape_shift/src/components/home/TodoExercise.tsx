@@ -57,7 +57,7 @@ export default function TodoExercise({ userId }: { userId: string }) {
   return (
     <Card className="rounded-lg border p-4 shadow bg-white space-y-4">
       <CardContent className="space-y-2">
-        <h2 className="text-lg font-semibold">{dayName}'s Exercises</h2>
+        <h2 className="text-lg font-semibold">{dayName}&apos;s Exercises</h2>
 
         {/* Completed state */}
         {allDone ? (

@@ -38,7 +38,7 @@ export default function TodoDiet({ userId }: { userId: string }) {
   return (
     <div className="rounded-lg border p-4 shadow bg-white">
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-lg font-semibold m-0">Today's Meals</h2>
+        <h2 className="text-lg font-semibold m-0">Today&apos;s Meals</h2>
         {meals.length === 0 && (
           <Button
             size="sm"

@@ -116,7 +116,6 @@ export default function DietPage() {
               </DialogHeader>
               <CustomMealForm
                 userId={userId}
-                onCancel={() => setIsCustomOpen(false)}
                 onAdded={async (newMeals) => {
                   setMeals(newMeals);
                   setIsCustomOpen(false);

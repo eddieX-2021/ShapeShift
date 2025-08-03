@@ -20,7 +20,7 @@ export default function NutritionSummary({
   return (
     <div className="border rounded-lg p-4 shadow bg-white space-y-4">
       <h2 className="text-xl font-semibold">
-        Today's Nutrition
+        Today&apos;s Nutrition
       </h2>
       <p className="text-sm text-muted-foreground">
         Total: {calories} / {goal} kcal

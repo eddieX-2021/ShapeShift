@@ -35,7 +35,7 @@ export default function BodyFatChart({ userId, range }: { userId: string; range:
     }
     const days: moment.Moment[] = [];
     const end = moment().startOf('day');
-    let cur = start.clone();
+    const cur = start.clone();
     while (cur <= end) {
       days.push(cur.clone());
       cur.add(1, 'day');

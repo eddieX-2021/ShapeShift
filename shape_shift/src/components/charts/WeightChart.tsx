@@ -20,7 +20,7 @@ export default function WeightChart({ userId, range }: { userId: string; range: 
     fetchWeightData(userId, range)
       .then(d => {
       console.log('WeightChart ← data', d);  // ← this tells you if the backend actually returned entries
-      setData(d);
+      setRawData(d);
     })
       .catch(console.error);
   }, [userId, range]);
@@ -44,7 +44,7 @@ export default function WeightChart({ userId, range }: { userId: string; range: 
     // build every day in [start, today]
     const days: moment.Moment[] = [];
     const end = moment().startOf('day');
-    let cursor = start.clone();
+    const cursor = start.clone();
     while (cursor <= end) {
       days.push(cursor.clone());
       cursor.add(1, 'day');

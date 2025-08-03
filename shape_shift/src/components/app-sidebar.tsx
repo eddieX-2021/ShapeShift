@@ -1,20 +1,5 @@
 "use client";
-
-import {
-  Home,
-  Activity,
-  Dumbbell,
-  Salad,
-  Bot,
-  LineChart,
-  Settings,
-  HelpCircle,
-  LifeBuoy,
-  User2,
-  ChevronUp,
-  ChevronDown,
-} from "lucide-react";
-
+import { Home, Activity, Dumbbell, Salad, Bot, HelpCircle, LifeBuoy, User2, ChevronUp, ChevronDown } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -41,7 +26,7 @@ import {
 } from "@/components/ui/collapsible";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { logoutUser } from "@/lib/api"; // Import the logout function
 import { toast } from "@/hooks/use-toast"; 
 
@@ -62,7 +47,6 @@ const helpItems = [
 ];
 export function AppSidebar() {
   const pathname = usePathname();
-  const router = useRouter();
   const handleLogout = async () => {
     try {
       await logoutUser();
@@ -70,7 +54,7 @@ export function AppSidebar() {
         title: "Logged out successfully",
         description: "You have been signed out.",
       });
-    } catch (error) {
+    } catch {
       toast({
         title: "Logout failed",
         description: "There was an error signing you out.",

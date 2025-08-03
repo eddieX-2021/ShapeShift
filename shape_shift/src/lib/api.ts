@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'http://localhost:5000/api',
+  baseURL: process.env.NEXT_PUBLIC_API_BASE_URL,
   withCredentials: true,
 });
 export type MealSection = 'breakfast' | 'lunch' | 'dinner' | 'snacks';
@@ -21,7 +21,16 @@ export interface Meals {
   dinner: MealItem[];
   snacks: MealItem[];
 }
-
+export interface ExercisePlan {
+  name: string;
+  sets: number;
+  reps: number;
+  description?: string;
+}
+export interface MealItemBrief {
+  name: string;
+  calories: number;
+}
 export interface Nutrition {
   calories: number;
   protein: number;
@@ -126,9 +135,14 @@ export async function fetchTodayMeals(
   const { data } = await api.get('/home/diet/meals/today', { params: { userId } });
   console.log('API ← fetchTodayMeals raw', data);
   const mealsObj = data.meals ?? { breakfast: [], lunch: [], dinner: [], snacks: [] };
-  const out: any[] = [];
+  const out: {
+    id: string;
+    name: string;
+    mealType: string;
+    calories: number;
+  }[] = [];
   for (const mealType of ['breakfast','lunch','dinner','snacks']) {
-    (mealsObj[mealType] || []).forEach((item: any, idx: number) =>
+    (mealsObj[mealType] || []).forEach((item:MealItemBrief, idx: number) =>
       out.push({
         id: `${mealType}-${idx}-${item.name}`,
         name: item.name,
@@ -164,17 +178,14 @@ export async function loginUser(email: string, password: string) {
   try {
     const response = await api.post("/auth/login", { email, password });
     return response.data;
-  } catch (error: any) {
-    if (error.response) {
-      // The request was made and the server responded with a status code
-      throw new Error(error.response.data.error || 'Login failed');
-    } else if (error.request) {
-      // The request was made but no response was received
-      throw new Error('No response from server');
-    } else {
-      // Something happened in setting up the request
-      throw new Error(error.message);
-    }
+  } catch (error) {
+    if (
+       axios.isAxiosError(error) &&
+       error.response?.data?.error
+     ) {
+       throw new Error(error.response.data.error);
+     }
+     throw error;
   }
 }
 export interface CurrentUser {
@@ -197,14 +208,14 @@ export async function getCurrentUser(): Promise<CurrentUser> {
     name: data.name,
     email: data.email
   };}
-  catch (error: any) {
-    if (error.response) {
-      throw new Error(error.response.data.error || 'Failed to fetch current user');
-    } else if (error.request) {
-      throw new Error('No response from server');
-    } else {
-      throw new Error(error.message);
-    }
+  catch (error) {
+    if (
+       axios.isAxiosError(error) &&
+       error.response?.data?.error
+     ) {
+       throw new Error(error.response.data.error);
+     }
+     throw error;
   }
 }
 
@@ -215,28 +226,28 @@ export async function logoutUser() {
           window.location.href = "/login";
         }
         return response.data;
-    } catch (error: any) {
-        if (error.response) {
-            throw new Error(error.response.data.error || 'Logout failed');
-        } else if (error.request) {
-            throw new Error('No response from server');
-        } else {
-            throw new Error(error.message);
-        }
+    } catch (error) {
+        if (
+       axios.isAxiosError(error) &&
+       error.response?.data?.error
+     ) {
+       throw new Error(error.response.data.error);
+     }
+     throw error;
     }
 }
 export async function generateWorkoutPlan(goal: string, level: string, duration: number) {
     try{ 
       const response = await api.post("/exercise/generate-plan", { goal, level, duration });
       return response.data;
-    }catch (error: any) {
-      if (error.response) {
-        throw new Error(error.response.data.error || 'Failed to generate workout plan');
-      } else if (error.request) {
-        throw new Error('No response from server');
-      } else {
-        throw new Error(error.message);
-      }
+    }catch (error) {
+      if (
+       axios.isAxiosError(error) &&
+       error.response?.data?.error
+     ) {
+       throw new Error(error.response.data.error);
+     }
+     throw error;
     }
   }
 
@@ -244,12 +255,22 @@ export async function getAIPlans(userId: string) {
   try {
     const response = await api.get(`/exercise/ai-plan/${userId}`);
     return response.data.plans;
-  } catch (error: any) {
-    throw new Error(error.response?.data?.error || 'Failed to fetch AI plans');
+  } catch (error) {
+    if (
+       axios.isAxiosError(error) &&
+       error.response?.data?.error
+     ) {
+       throw new Error(error.response.data.error);
+     }
+     throw error;
   }
 }
 
-export async function saveAIPlan(userId: string, cycleName: string, exercises: any[]) {
+export async function saveAIPlan(
+  userId: string,
+  cycleName: string,
+  exercises: ExercisePlan[]
+) {
   try {
     const response = await api.post("/exercise/ai-plan", {
       userId,
@@ -257,8 +278,14 @@ export async function saveAIPlan(userId: string, cycleName: string, exercises: a
       exercises,
     });
     return response.data;
-  } catch (error: any) {
-    throw new Error(error.response?.data?.error || 'Failed to save AI plan');
+  } catch (error) {
+    if (
+       axios.isAxiosError(error) &&
+       error.response?.data?.error
+     ) {
+       throw new Error(error.response.data.error);
+     }
+     throw error;
   }
 }
 
@@ -266,12 +293,22 @@ export async function getManualPlanner(userId: string) {
   try {
     const response = await api.get(`/exercise/manual-planner/${userId}`);
     return response.data.planner || {};
-  } catch (error: any) {
-    throw new Error(error.response?.data?.error || 'Failed to fetch manual planner');
+  } catch (error) {
+    if (
+       axios.isAxiosError(error) &&
+       error.response?.data?.error
+     ) {
+       throw new Error(error.response.data.error);
+     }
+     throw error;
   }
 }
 
-export async function updatePlannerDay(userId: string, day: string, workouts: any[]) {
+export async function updatePlannerDay(
+  userId: string,
+  day: string,
+  workouts: ExercisePlan[]
+) {
   try {
     const response = await api.patch("/exercise/manual-planner/day", {
       userId,
@@ -279,8 +316,14 @@ export async function updatePlannerDay(userId: string, day: string, workouts: an
       workouts,
     });
     return response.data;
-  } catch (error: any) {
-    throw new Error(error.response?.data?.error || 'Failed to update planner day');
+  } catch (error) {
+    if (
+       axios.isAxiosError(error) &&
+       error.response?.data?.error
+     ) {
+       throw new Error(error.response.data.error);
+     }
+     throw error;
   }
 }
 
@@ -288,8 +331,14 @@ export async function deleteAIPlan(userId: string, planId: string) {
   try {
     const response = await api.delete(`/exercise/ai-plan/${userId}/${planId}`);
     return response.data;
-  } catch (error: any) {
-    throw new Error(error.response?.data?.error || 'Failed to delete AI plan');
+  } catch (error) {
+    if (
+       axios.isAxiosError(error) &&
+       error.response?.data?.error
+     ) {
+       throw new Error(error.response.data.error);
+     }
+     throw error;
   }
 }
 
@@ -377,12 +426,14 @@ export async function saveDietPlan(
       meals,
     });
     return res.data.plans;
-  } catch (err: any) {
-    if (axios.isAxiosError(err) && err.response?.status === 409) {
-      // bubble up our JSON `{ error: '…' }`
-      throw new Error(err.response.data.error);
-    }
-    throw err;
+  } catch (error) {
+    if (
+       axios.isAxiosError(error) &&
+       error.response?.data?.error
+     ) {
+       throw new Error(error.response.data.error);
+     }
+     throw error;
   }
 }
 

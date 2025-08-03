@@ -10,7 +10,16 @@ const exerciseLibrary = [
   { name: "Shoulder Press", sets: 3, reps: 10 },
 ];
 
-export default function WorkoutSearch({ onAdd }: { onAdd?: (w: any) => void }) {
+export interface Exercise {
+  name: string;
+  sets: number;
+  reps: number;
+}
+export default function WorkoutSearch({
+  onAdd,
+}: {
+  onAdd?: (w: Exercise) => void;
+}) {
   const [query, setQuery] = useState("");
 
   const filtered = exerciseLibrary.filter((e) =>

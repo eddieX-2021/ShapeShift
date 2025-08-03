@@ -1,15 +1,20 @@
 "use client";
 import AddWorkoutToDaysForm from "./AddWorkoutToDaysForm";  
 import WorkoutCard from "./WorkoutCard";
-import { Button } from "@/components/ui/button";
 // In WorkoutPlannerBoard.tsx
+export interface Exercise {
+  name: string;
+  sets: number;
+  reps: number;
+  description?: string;
+}
 export default function WorkoutPlannerBoard({
   planner,
   addWorkout,
   removeWorkout,
 }: {
-  planner: { [day: string]: any[] };
-  addWorkout: (day: string, workout: any) => void;
+  planner: Record<string, Exercise[]>;
+  addWorkout: (day: string, workout: Exercise) => void;
   removeWorkout: (day: string, index: number) => void;
 }) {
   // Define the days in the correct order and casing

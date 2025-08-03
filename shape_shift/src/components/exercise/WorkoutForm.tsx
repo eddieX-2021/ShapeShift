@@ -5,8 +5,11 @@ import { generateWorkoutPlan } from "@/lib/api"
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
-
-export default function WorkoutForm({ onPlanReady }: { onPlanReady: (plan: any) => void }) {
+type GeneratedPlan = {
+  cycleName: string;
+  exercises: { name: string; sets: number; reps: number; description?: string }[];
+};
+export default function WorkoutForm({onPlanReady,}: { onPlanReady: (plan: GeneratedPlan) => void;}) {
   const [goal, setGoal] = useState("");
   const [level, setLevel] = useState("");
   const [duration, setDuration] = useState("");

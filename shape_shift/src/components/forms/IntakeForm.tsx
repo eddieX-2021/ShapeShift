@@ -1,7 +1,6 @@
-'use client';
+"use client";
 
 import React, { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -22,41 +21,28 @@ import {
 } from "@/lib/api";
 
 export default function IntakeForm() {
-  const router = useRouter();
-
-  // ─── User / Submitted State ─────────────────────────
   const [userId, setUserId] = useState<string | null>(null);
   const [loadingUser, setLoadingUser] = useState(true);
   const [submitted, setSubmitted] = useState(false);
 
-  // ─── Fetch current user on mount ─────────────────────
   useEffect(() => {
     getCurrentUser()
-      .then((u) => {
-        setUserId(u.id);
-      })
-      .catch((err) => {
-        console.error("Failed to fetch user:", err);
-      })
-      .finally(() => {
-        setLoadingUser(false);
-      });
+      .then((u) => setUserId(u.id))
+      .catch((e) => console.error("Failed to fetch user:", e))
+      .finally(() => setLoadingUser(false));
   }, []);
 
-  // ─── Poll intake status once we have a userId ────────
   useEffect(() => {
     if (!userId) return;
     let mounted = true;
-
     const fetchStatus = async () => {
       try {
         const done = await checkIntake(userId);
         if (mounted) setSubmitted(done);
-      } catch (e) {
+      } catch (e: unknown) {
         console.error("checkIntake failed", e);
       }
     };
-
     fetchStatus();
     const id = setInterval(fetchStatus, 60_000);
     return () => {
@@ -65,7 +51,6 @@ export default function IntakeForm() {
     };
   }, [userId]);
 
-  // ─── Form State ───────────────────────────────────────
   const [weight, setWeight] = useState("");
   const [bmi, setBmi] = useState("");
   const [method, setMethod] = useState<"direct" | "navy" | "">("");
@@ -76,16 +61,13 @@ export default function IntakeForm() {
   const [neck, setNeck] = useState("");
   const [hips, setHips] = useState("");
 
-  // ─── Submit Handler ──────────────────────────────────
   const handleSubmit = async () => {
     if (!userId) return;
-
     const base: IntakePayload = {
       userId,
       weight: parseFloat(weight),
       bmi: parseFloat(bmi),
     };
-
     const payload: IntakePayload =
       method === "direct"
         ? { ...base, bodyFat }
@@ -96,33 +78,28 @@ export default function IntakeForm() {
               height: Number(height),
               waist: Number(waist),
               neck: Number(neck),
-              ...(gender === "female" ? { hip: Number(hips) } : {}),
+              ...(gender === "female"
+                ? { hip: Number(hips) }
+                : {}),
             } as NavyInputs,
           };
-
     try {
       await submitIntakeEntry(payload);
       setSubmitted(true);
-    } catch (e) {
+    } catch (e: unknown) {
       console.error("submitIntakeEntry failed", e);
       alert("Failed to submit intake.");
     }
   };
 
-  // ─── Loading / Already Submitted States ──────────────
-  if (loadingUser) {
-    return <p>Loading...</p>;
-  }
-
-  if (submitted) {
+  if (loadingUser) return <p>Loading...</p>;
+  if (submitted)
     return (
       <div className="text-green-600 text-lg">
         ✅ You’ve completed today’s intake!
       </div>
     );
-  }
 
-  // ─── Form Markup ──────────────────────────────────────
   return (
     <form
       onSubmit={(e) => {
@@ -160,7 +137,11 @@ export default function IntakeForm() {
       {/* Body Fat Method & Inputs */}
       <div className="space-y-2 border rounded p-4">
         <Label>Body Fat Input Method</Label>
-        <Select onValueChange={(v) => setMethod(v as any)}>
+        <Select
+          onValueChange={(v) =>
+            setMethod(v as "direct" | "navy")
+          }
+        >
           <SelectTrigger>
             <SelectValue placeholder="Select method" />
           </SelectTrigger>
@@ -186,7 +167,11 @@ export default function IntakeForm() {
         {method === "navy" && (
           <>
             <Label>Gender</Label>
-            <Select onValueChange={(v) => setGender(v as any)}>
+            <Select
+              onValueChange={(v) =>
+                setGender(v as "male" | "female")
+              }
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Gender" />
               </SelectTrigger>
@@ -241,7 +226,11 @@ export default function IntakeForm() {
 
       {/* Submit Button */}
       <div className="col-span-1 md:col-span-3 pt-4">
-        <Button type="submit" className="w-full" disabled={!method}>
+        <Button
+          type="submit"
+          className="w-full"
+          disabled={!method}
+        >
           Submit All Intake
         </Button>
       </div>

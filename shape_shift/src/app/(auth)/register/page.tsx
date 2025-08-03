@@ -1,30 +1,37 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { ToastContainer, toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
-import { registerUser } from '@/lib/api';  // ← NEW
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import axios from "axios";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import { registerUser } from "@/lib/api";
 
 export default function RegisterPage() {
-  const [name, setName]         = useState('');
-  const [email, setEmail]       = useState('');
-  const [password, setPassword] = useState('');
-  const [message, setMessage]   = useState('');
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [message, setMessage] = useState("");
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       const { msg } = await registerUser(name, email, password);
-      toast.success(msg || 'Registered successfully');
-      setTimeout(() => router.push('/login'), 1000);
-    } catch (err: any) {
-      setMessage('❌ ' + (err.response?.data?.error || 'Registration failed'));
+      toast.success(msg || "Registered successfully");
+      setTimeout(() => router.push("/login"), 1000);
+    } catch (err: unknown) {
+      const errMsg =
+        axios.isAxiosError(err) && err.response?.data?.error
+          ? err.response.data.error
+          : err instanceof Error
+          ? err.message
+          : "Registration failed";
+      setMessage("❌ " + errMsg);
     }
   };
 
@@ -34,7 +41,9 @@ export default function RegisterPage() {
       <div className="min-h-screen flex items-center justify-center p-6">
         <Card className="w-full max-w-md">
           <CardContent className="p-6 space-y-6">
-            <h1 className="text-2xl font-bold text-center">Create an account</h1>
+            <h1 className="text-2xl font-bold text-center">
+              Create an account
+            </h1>
             {message && (
               <p className="text-center text-sm text-muted-foreground">
                 {message}
@@ -46,7 +55,7 @@ export default function RegisterPage() {
                 <Input
                   id="name"
                   value={name}
-                  onChange={e => setName(e.target.value)}
+                  onChange={(e) => setName(e.target.value)}
                   required
                 />
               </div>
@@ -56,7 +65,7 @@ export default function RegisterPage() {
                   id="email"
                   type="email"
                   value={email}
-                  onChange={e => setEmail(e.target.value)}
+                  onChange={(e) => setEmail(e.target.value)}
                   required
                 />
               </div>
@@ -66,7 +75,7 @@ export default function RegisterPage() {
                   id="password"
                   type="password"
                   value={password}
-                  onChange={e => setPassword(e.target.value)}
+                  onChange={(e) => setPassword(e.target.value)}
                   required
                 />
               </div>
@@ -74,7 +83,7 @@ export default function RegisterPage() {
                 Register
               </Button>
               <div className="text-center text-sm">
-                Already have an account?{' '}
+                Already have an account?{" "}
                 <a href="/login" className="underline">
                   Login
                 </a>
@@ -83,7 +92,7 @@ export default function RegisterPage() {
                 <button
                   type="button"
                   className="underline text-blue-600 hover:text-blue-800"
-                  onClick={() => router.push('/')}
+                  onClick={() => router.push("/")}
                 >
                   Home
                 </button>
