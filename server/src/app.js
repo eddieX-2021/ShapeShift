@@ -14,11 +14,7 @@ connectDB();
 
 const FRONTEND_URL = process.env.CLIENT_URL || 'http://localhost:3000';
 const app = express();
-app.use(cors({
-  origin: FRONTEND_URL, // or your frontend URL
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
+app.use(cors());
 
 app.use(express.json());
 
