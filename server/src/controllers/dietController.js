@@ -2,6 +2,8 @@ const { searchMeal } = require('../utils/mealSearch');
 const { generateDietPlan: _gen } = require('../utils/generateDietPlan');
 const DietPlan   = require('../models/UserDiet');
 const DailyMeal  = require('../models/DailyMeal');
+const moment = require('moment');
+const axios = require('axios');
 
 exports.generateDietPlan = async (req, res) => {
   try {
@@ -178,5 +180,73 @@ exports.addMealFromSearch = async (req, res) => {
   }
 };
 
-exports.searchMealSuggestions = async (req, res) => { /* … unchanged … */ };
-exports.searchMeal             = async (req, res) => { /* … unchanged … */ };
+exports.searchMealSuggestions = async (req, res) => {
+  console.log('🔍 Got to searchMealSuggestions with', req.query);
+  const { query } = req.query;
+  if (!query) return res.status(400).json({ error: 'query param required' });
+  try {
+    const { data } = await axios.get(
+      'https://trackapi.nutritionix.com/v2/search/instant',
+      {
+        params: { query, common: true, branded: false },
+        headers: {
+          'x-app-id':  process.env.NUTRITIONIX_APP_ID,
+          'x-app-key': process.env.NUTRITIONIX_APP_KEY
+        }
+      }
+    );
+    // return up to 10 names
+    const suggestions = data.common
+      .slice(0,10)
+      .map(item => item.food_name);
+    res.json({ suggestions });
+  } catch (err) {
+    console.error(err.response?.data || err.message);
+    res.status(500).json({ error: 'Failed to fetch suggestions' });
+  }
+};
+
+// 2) Nutrition lookup + save to user’s meals
+exports.searchMeal = async (req, res) => {
+  const { userId, mealName, section } = req.body;
+  if (!userId || !mealName || !section) {
+    return res.status(400).json({ error: 'Missing required fields' });
+  }
+  try {
+    // 2a) Get nutrition facts
+    const { data } = await axios.post(
+      'https://trackapi.nutritionix.com/v2/natural/nutrients',
+      { query: mealName },
+      {
+        headers: {
+          'x-app-id':  process.env.NUTRITIONIX_APP_ID,
+          'x-app-key': process.env.NUTRITIONIX_APP_KEY,
+          'Content-Type': 'application/json',
+        }
+      }
+    );
+    const f = data.foods[0];
+    const item = {
+      name:       f.food_name,
+      calories:   f.nf_calories,
+      protein:    f.nf_protein,
+      carbs:      f.nf_total_carbohydrate,
+      fats:       f.nf_total_fat,
+      description: '',
+    };
+
+    // 2b) Save into DB (adapt to your model; here’s a sketch)
+    await UserMeals.updateOne(
+      { userId },
+      { $push: { [`meals.${section}`]: item } },
+      { upsert: true }
+    );
+
+    // 2c) Return updated meals
+    const updated = await UserMeals.findOne({ userId });
+    res.json({ meals: updated.meals });
+  } catch (err) {
+    console.error(err.response?.data || err.message);
+    res.status(500).json({ error: 'Failed to search meal' });
+  }
+};

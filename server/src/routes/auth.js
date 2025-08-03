@@ -1,14 +1,13 @@
-// routes/auth.js
 require('dotenv').config();
-const express       = require('express');
-const bcrypt        = require('bcryptjs');
-const jwt           = require('jsonwebtoken');
-const crypto        = require('crypto');
-const nodemailer    = require('nodemailer');
-const User          = require('../models/user');
-const router        = express.Router();
+const express    = require('express');
+const bcrypt     = require('bcryptjs');
+const jwt        = require('jsonwebtoken');
+const crypto     = require('crypto');
+const nodemailer = require('nodemailer');
+const User       = require('../models/user');
+const router     = express.Router();
 
-const JWT_SECRET    = process.env.JWT_SECRET;
+const JWT_SECRET = process.env.JWT_SECRET;
 const { SMTP_USER, SMTP_PASS, CLIENT_URL } = process.env;
 
 // ── Configure a single nodemailer transporter ───────────────────────────────
@@ -24,18 +23,29 @@ const transporter = nodemailer.createTransport({
   }
 });
 
-// ── Register ─────────────────────────────────────────────────────────────────
 router.post('/register', async (req, res) => {
   const { name, email, password } = req.body;
   if (!name || !email || !password) {
-    return res.status(400).json({ error: 'Name, email and password required' });
+    return res.status(400).json({ error: 'Name, email and password required.' });
   }
 
+  // ── enforce “strong” password ────────────────────────────────────────────
+  const strongPwd =
+    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
+  if (!strongPwd.test(password)) {
+    return res.status(400).json({
+      error:
+        'Password must be at least 8 characters long and include • an uppercase letter • a lowercase letter • a number • a special character '
+    });
+  }
+
+  // ── make sure it doesn’t already exist ───────────────────────────────────
   if (await User.findOne({ email })) {
-    return res.status(400).json({ error: 'User already exists' });
+    return res.status(400).json({ error: 'User already exists.' });
   }
 
-  const salt = await bcrypt.genSalt(10);
+  // ── now hash & save ─────────────────────────────────────────────────────
+  const salt   = await bcrypt.genSalt(10);
   const hashed = await bcrypt.hash(password, salt);
 
   const user = new User({ name, email, password: hashed });
@@ -44,7 +54,6 @@ router.post('/register', async (req, res) => {
   const { password: pw, ...userData } = user.toObject();
   res.status(201).json({ msg: 'User registered successfully', user: userData });
 });
-
 // ── Login ────────────────────────────────────────────────────────────────────
 router.post('/login', async (req, res) => {
   const { email, password } = req.body;
@@ -118,28 +127,35 @@ router.post('/forgot-password', async (req, res) => {
   res.json({ message: resetUrl });
 });
 
-// ── Reset Password ───────────────────────────────────────────────────────────
 router.post('/reset-password', async (req, res) => {
-  const { token, password } = req.body;
+  const { token, password } = req.body
   if (!token || !password) {
-    return res.status(400).json({ error: 'Token and new password required' });
+    return res.status(400).json({ error: 'Token and new password required' })
+  }
+
+  // ── enforce “strong” password ────────────────────────────────────────────
+  const strongPwd = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/
+  if (!strongPwd.test(password)) {
+    return res.status(400).json({
+      error:
+        'Password must be at least 8 characters long and include an uppercase letter, a lowercase letter, a number, and a special character.'
+    })
   }
 
   const user = await User.findOne({
     resetPasswordToken:   token,
     resetPasswordExpires: { $gt: Date.now() }
-  });
+  })
   if (!user) {
-    return res.status(400).json({ error: 'Invalid or expired token' });
+    return res.status(400).json({ error: 'Invalid or expired token' })
   }
 
-  const salt = await bcrypt.genSalt(10);
-  user.password               = await bcrypt.hash(password, salt);
-  user.resetPasswordToken     = undefined;
-  user.resetPasswordExpires   = undefined;
-  await user.save();
+  const salt = await bcrypt.genSalt(10)
+  user.password             = await bcrypt.hash(password, salt)
+  user.resetPasswordToken   = undefined
+  user.resetPasswordExpires = undefined
+  await user.save()
 
-  res.json({ message: 'Password has been reset' });
-});
-
+  res.json({ message: 'Password has been reset' })
+})
 module.exports = router;

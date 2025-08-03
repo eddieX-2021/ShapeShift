@@ -124,8 +124,7 @@ exports.getTodayMeals = async (req, res) => {
 
     console.log('getTodayMeals:', { userId, start, end });
     const daily = await DailyMeal.findOne({
-      userId,
-      date: { $gte: start, $lt: end },
+      userId
     });
     console.log(' → daily from DB:', daily);
 
@@ -150,8 +149,7 @@ exports.getNutrition = async (req, res) => {
 
     console.log('getNutrition:', { userId, start, end });
     const daily = await DailyMeal.findOne({
-      userId,
-      date: { $gte: start, $lt: end },
+      userId
     });
     console.log(' → daily from DB:', daily);
 

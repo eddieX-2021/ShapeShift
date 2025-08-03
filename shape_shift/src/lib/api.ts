@@ -184,6 +184,7 @@ export interface CurrentUser {
 }
 export async function getCurrentUser(): Promise<CurrentUser> {
   // tell TS you expect an _id, name, and email
+  try{
   const { data } = await api.get<{
     _id: string;
     name: string;
@@ -195,18 +196,18 @@ export async function getCurrentUser(): Promise<CurrentUser> {
     id: data._id,
     name: data.name,
     email: data.email
-  };
+  };}
+  catch (error: any) {
+    if (error.response) {
+      throw new Error(error.response.data.error || 'Failed to fetch current user');
+    } else if (error.request) {
+      throw new Error('No response from server');
+    } else {
+      throw new Error(error.message);
+    }
+  }
 }
 
-export async function registerUser(email: string, password: string) {
-    try {
-        const response = await axios.post("http://localhost:5000/api/auth/register", { email, password }, { withCredentials: true });
-        return response.data;
-    } catch (error) {
-        console.error('Registration failed:', error);
-        throw error;
-    }
-}
 export async function logoutUser() {
     try {
         const response = await api.post("/auth/logout");
@@ -418,7 +419,7 @@ export async function searchMeal(
   mealName: string,
   section: MealSection
 ) {
-  const res = await fetch('/api/diet/meal/search', {
+  const res = await fetch('/diet/meal/search', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ userId, mealName, section }),
@@ -457,4 +458,46 @@ export async function addCustomMeal(
     item,
   });
   return res.data.meals as Meals;
+}
+
+export async function forgotPassword(
+  email: string
+): Promise<{ message: string }> {
+  const res = await api.post('/auth/forgot-password', { email });
+  return res.data;
+}
+
+export async function registerUser(
+  name: string,
+  email: string,
+  password: string
+): Promise<{ msg: string }> {
+  const res = await api.post('/auth/register', { name, email, password });
+  return res.data;
+}
+
+
+export async function resetPassword(
+  token: string,
+  password: string
+): Promise<{ message: string }> {
+  const res = await api.post('/auth/reset-password', { token, password });
+  return res.data;
+}
+
+export async function scanFoodImage(
+  file: File
+): Promise<{
+  name: string;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fats: number;
+  servingQty: number;
+  servingUnit: string;
+}> {
+  const formData = new FormData();
+  formData.append('image', file);
+  const res = await api.post('/diet/scan', formData);
+  return res.data;
 }

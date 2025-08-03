@@ -1,47 +1,59 @@
-"use client";
+'use client';
 
-export default function BmiGaugeChart({ bmi }: { bmi?: number }) {
-  const isValid = typeof bmi === "number" && !isNaN(bmi);
-  const percent = isValid ? Math.min(Math.max(bmi! / 40, 0), 1) : 0;
-  const angle = 180 * percent;
-  const radius = 100;
-  const x = radius + radius * Math.cos(Math.PI * (1 - percent));
-  const y = radius - radius * Math.sin(Math.PI * (1 - percent));
+import React from 'react';
+import { PieChart, Pie, Cell } from 'recharts';
 
-  const category = (bmi: number) => {
-    if (bmi < 18.5) return "Underweight";
-    if (bmi < 25) return "Normal";
-    if (bmi < 30) return "Overweight";
-    return "Obese";
+interface BmiGaugeChartProps {
+  bmi?: number;
+}
+
+export default function BmiGaugeChart({ bmi }: BmiGaugeChartProps) {
+  const isValid = typeof bmi === 'number' && !isNaN(bmi);
+  const displayValue = isValid ? Number(bmi!.toFixed(1)) : null;
+  const percent = isValid ? Math.min(Math.max(displayValue! / 40, 0), 1) : 0;
+
+  const getCategory = (v: number) => {
+    if (v < 18.5) return 'Underweight';
+    if (v < 25) return 'Normal';
+    if (v < 30) return 'Overweight';
+    return 'Obese';
   };
+  const category = isValid ? getCategory(displayValue!) : '';
+
+  const data = [
+    { name: 'filled', value: percent },
+    { name: 'empty',  value: 1 - percent }
+  ];
 
   return (
-    <div className="h-[300px] w-full">
-      {!isValid ? (
-        <div className="h-full flex items-center justify-center text-sm text-muted-foreground border rounded-lg">
-          No BMI data available.
-        </div>
+    <div className="flex flex-col items-center p-4">
+      <h3 className="text-lg font-semibold mb-2">BMI</h3>
+
+      {isValid ? (
+        <>
+          <PieChart width={220} height={180} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
+            <Pie
+              data={data}
+              dataKey="value"
+              startAngle={180}
+              endAngle={0}
+              innerRadius={60}
+              outerRadius={80}
+              cornerRadius={8}
+              paddingAngle={2}
+            >
+              <Cell fill="#3b82f6" />
+              <Cell fill="#e5e7eb" />
+            </Pie>
+          </PieChart>
+
+          <p className="text-2xl font-bold mt-2">{displayValue}</p>
+          <p className="text-sm text-muted-foreground">{category}</p>
+        </>
       ) : (
-        <div className="flex flex-col items-center">
-          <svg width="220" height="120">
-            <path
-              d="M 10 110 A 100 100 0 0 1 210 110"
-              fill="none"
-              stroke="#e5e7eb"
-              strokeWidth="20"
-            />
-            <path
-              d={`M 10 110 A 100 100 0 ${angle > 180 ? 1 : 0} 1 ${x} ${y}`}
-              fill="none"
-              stroke="#3b82f6"
-              strokeWidth="20"
-            />
-          </svg>
-          <div className="text-center mt-2">
-            <p className="text-xl font-semibold">{bmi!.toFixed(1)}</p>
-            <p className="text-sm text-gray-500">{category(bmi!)}</p>
-          </div>
-        </div>
+        <p className="text-sm text-center text-muted-foreground">
+          No BMI data available.
+        </p>
       )}
     </div>
   );

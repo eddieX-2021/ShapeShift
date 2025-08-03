@@ -5,7 +5,6 @@ import { generateWorkoutPlan } from "@/lib/api"
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
-import { on } from "events";
 
 export default function WorkoutForm({ onPlanReady }: { onPlanReady: (plan: any) => void }) {
   const [goal, setGoal] = useState("");

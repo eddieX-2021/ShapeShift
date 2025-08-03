@@ -3,6 +3,7 @@
 
 import { Progress } from '@/components/ui/progress';
 import { Nutrition } from '@/lib/api';
+import { JSX } from 'react';
 
 interface Props {
   nutrition: Nutrition;
