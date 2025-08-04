@@ -1,4 +1,5 @@
 # ShapeShift
+Website link: https://shape-shift-vert.vercel.app/ 
 
 ## Summary
 
@@ -16,7 +17,7 @@ ShapeShift is an AI-powered weight management platform designed to help users ac
 
 ## Project Status
 
-**Status**: First phase complete
+**Status**: First phase complete: 
 
 **Core features implemented:**
 
