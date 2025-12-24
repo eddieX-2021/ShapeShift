@@ -14,70 +14,90 @@ import {
 } from "@/lib/api";
 
 import type { Exercise } from "@/type/exercise";
+
 type WorkoutPlan = {
   _id?: string;
   cycleName: string;
   exercises: Exercise[];
 };
+
 type ManualPlannerResponse = Record<
-  'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday',
+  "monday" | "tuesday" | "wednesday" | "thursday" | "friday" | "saturday" | "sunday",
   Exercise[]
 >;
 
 export default function Page() {
   const [userId, setUserId] = useState<string | null>(null);
+  const [loadingUser, setLoadingUser] = useState(true);
+
   const [aiSuggestedPlan, setAiSuggestedPlan] = useState<WorkoutPlan | null>(null);
   const [savedPlans, setSavedPlans] = useState<WorkoutPlan[]>([]);
   const [planner, setPlanner] = useState<Record<string, Exercise[]>>({
-    Monday: [], Tuesday: [], Wednesday: [],
-    Thursday: [], Friday: [], Saturday: [], Sunday: []
+    Monday: [],
+    Tuesday: [],
+    Wednesday: [],
+    Thursday: [],
+    Friday: [],
+    Saturday: [],
+    Sunday: [],
   });
   const [isAddingAll, setIsAddingAll] = useState(false);
 
   useEffect(() => {
-    async function fetchEverything() {
-      const user = await getCurrentUser();
-      setUserId(user.id!);
+    (async () => {
+      try {
+        const user = await getCurrentUser();
+        if (!user) {
+          setUserId(null);
+          return;
+        }
+        setUserId(user.id);
 
-      const aiPlans = await getAIPlans(user.id!);
-      setSavedPlans(aiPlans);
-      if (aiPlans.length) setAiSuggestedPlan(aiPlans[0]);
+        const aiPlans = await getAIPlans(user.id);
+        setSavedPlans(aiPlans);
+        if (aiPlans.length) setAiSuggestedPlan(aiPlans[0]);
 
-      const manual = (await getManualPlanner(user.id!)) as ManualPlannerResponse;
-      const formatted: Record<string, Exercise[]> = {};
-      (Object.entries(manual) as [keyof ManualPlannerResponse, Exercise[]][])
-        .forEach(([key, val]) => {
-          const title = key.charAt(0).toUpperCase() + key.slice(1);
-          formatted[title] = val;
-        });
+        const manual = (await getManualPlanner(user.id)) as ManualPlannerResponse;
+        const formatted: Record<string, Exercise[]> = {};
+        (Object.entries(manual) as [keyof ManualPlannerResponse, Exercise[]][])
+          .forEach(([key, val]) => {
+            const title = key.charAt(0).toUpperCase() + key.slice(1);
+            formatted[title] = val;
+          });
 
-      setPlanner(prev => ({ ...prev, ...formatted }));
-    }
-
-    fetchEverything();
+        setPlanner((prev) => ({ ...prev, ...formatted }));
+      } catch (e) {
+        console.error("Failed to load workout data:", e);
+        setUserId(null);
+      } finally {
+        setLoadingUser(false);
+      }
+    })();
   }, []);
 
   const addWorkout = async (day: string, workout: Exercise) => {
     if (!userId) return;
     const current = planner[day] || [];
     const exists = current.some(
-      w => w.name === workout.name && w.sets === workout.sets && w.reps === workout.reps
+      (w) => w.name === workout.name && w.sets === workout.sets && w.reps === workout.reps
     );
-    if (!exists) {
-      const updated = [...current, workout];
-      setPlanner(prev => ({ ...prev, [day]: updated }));
-      try {
-        await updatePlannerDay(userId, day.toLowerCase(), updated);
-      } catch (err: unknown) {
-        console.error("Error saving updated planner day", err);
-      }
+    if (exists) return;
+
+    const updated = [...current, workout];
+    setPlanner((prev) => ({ ...prev, [day]: updated }));
+
+    try {
+      await updatePlannerDay(userId, day.toLowerCase(), updated);
+    } catch (err: unknown) {
+      console.error("Error saving updated planner day", err);
     }
   };
 
   const removeWorkout = async (day: string, index: number) => {
     if (!userId) return;
-    const updated = planner[day].filter((_, i) => i !== index);
-    setPlanner(prev => ({ ...prev, [day]: updated }));
+    const updated = (planner[day] || []).filter((_, i) => i !== index);
+    setPlanner((prev) => ({ ...prev, [day]: updated }));
+
     try {
       await updatePlannerDay(userId, day.toLowerCase(), updated);
     } catch (err: unknown) {
@@ -87,17 +107,21 @@ export default function Page() {
 
   const handleAddAll = async (day: string) => {
     if (!aiSuggestedPlan?.exercises || isAddingAll || !userId) return;
+
     setIsAddingAll(true);
     try {
       const current = planner[day] || [];
-      const unique = aiSuggestedPlan.exercises.filter((newEx: Exercise) =>
-        !current.some(
-          w => w.name === newEx.name && w.sets === newEx.sets && w.reps === newEx.reps
-        )
+      const unique = aiSuggestedPlan.exercises.filter(
+        (newEx) =>
+          !current.some(
+            (w) => w.name === newEx.name && w.sets === newEx.sets && w.reps === newEx.reps
+          )
       );
+
       if (unique.length === 0) return;
+
       const updated = [...current, ...unique];
-      setPlanner(prev => ({ ...prev, [day]: updated }));
+      setPlanner((prev) => ({ ...prev, [day]: updated }));
       await updatePlannerDay(userId, day.toLowerCase(), updated);
     } catch (err: unknown) {
       console.error("Error adding all exercises", err);
@@ -126,11 +150,17 @@ export default function Page() {
     if (!userId) return;
     try {
       await deleteAIPlan(userId, planId);
-      setSavedPlans(prev => prev.filter(p => p._id !== planId));
+      setSavedPlans((prev) => prev.filter((p) => p._id !== planId));
     } catch (err: unknown) {
       console.error("Error deleting plan", err);
     }
   };
+
+  if (loadingUser) return <div className="p-6">Loading...</div>;
+
+  if (!userId) {
+    return <div className="p-6 text-gray-600">Please log in to view Exercise Plan.</div>;
+  }
 
   return (
     <div className="p-6 space-y-8">
@@ -152,10 +182,8 @@ export default function Page() {
 
       {savedPlans.length > 0 && (
         <div className="space-y-4">
-          <h2 className="text-xl font-semibold">
-            💾 Saved Plans ({savedPlans.length}/2)
-          </h2>
-          {savedPlans.map(plan => (
+          <h2 className="text-xl font-semibold">💾 Saved Plans ({savedPlans.length}/2)</h2>
+          {savedPlans.map((plan) => (
             <WorkoutPlanAccordion
               key={plan._id}
               plan={plan}
@@ -168,11 +196,7 @@ export default function Page() {
         </div>
       )}
 
-      <WorkoutPlannerBoard
-        planner={planner}
-        addWorkout={addWorkout}
-        removeWorkout={removeWorkout}
-      />
+      <WorkoutPlannerBoard planner={planner} addWorkout={addWorkout} removeWorkout={removeWorkout} />
     </div>
-);
+  );
 }

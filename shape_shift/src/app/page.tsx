@@ -1,217 +1,73 @@
-"use client";
-
-import React, { useState, useEffect } from "react";
-import Image from "next/image";
-import { useRouter } from "next/navigation";
-
-import {
-  getCurrentUser,
-  fetchWeightData,
-  fetchBodyFatData,
-  fetchTodayIntake,
-} from "@/lib/api";
-
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
-
-import WeightChart from "@/components/charts/WeightChart";
-import BodyFatChart from "@/components/charts/BodyFatChart";
-import BmiGaugeChart from "@/components/charts/BmiSemiCircle";
-import TodoExercise from "@/components/home/TodoExercise";
-import TodoDiet from "@/components/home/TodoDiet";
-import type { Range } from "@/lib/api";
-
 export default function HomePage() {
-  const [user, setUser] = useState<{ id: string; name: string } | null>(
-    null
-  );
-  const [range, setRange] = useState<Range>("week");
-  const [weightData, setWeightData] = useState<
-    { date: string; weight: number }[]
-  >([]);
-  const [bodyFatData, setBodyFatData] = useState<
-    { date: string; bodyFat: number }[]
-  >([]);
-  const [bmi, setBmi] = useState<number | null>(null);
-  const [loading, setLoading] = useState(true);
-  const router = useRouter();
-
-  useEffect(() => {
-    const load = async () => {
-      setLoading(true);
-      try {
-        const u = await getCurrentUser();
-        setUser(u);
-        const [w, f, t] = await Promise.all([
-          fetchWeightData(u.id, range),
-          fetchBodyFatData(u.id, range),
-          fetchTodayIntake(u.id),
-        ]);
-        setWeightData(w);
-        setBodyFatData(f);
-        setBmi(t.bmi ?? null);
-      } catch (e) {
-        console.error(e);
-      } finally {
-        setLoading(false);
-      }
-    };
-    load();
-  }, [range]);
-
-  if (!user) {
-    return (
-      <div className="p-10 text-center space-y-8">
-        <h1 className="text-4xl font-bold">Welcome to ShapeShift 🏋️</h1>
-        <div className="mt-8 flex justify-center gap-6">
-          <Button onClick={() => router.push("/login")}>Login</Button>
-          <Button
-            variant="outline"
-            onClick={() => router.push("/register")}
-          >
-            Register
-          </Button>
-        </div>
-        <p className="text-lg text-muted-foreground max-w-xl mx-auto">
-          Your AI-powered fitness assistant: track progress, plan
-          workouts, and eat healthier.
+  return (
+    <div className="min-h-screen bg-white flex flex-col items-center">
+      {/* Header */}
+      <div className="mt-24 text-center space-y-4">
+        <h1 className="text-5xl font-bold">
+          Welcome to <span className="text-black">ShapeShift</span> 💪
+        </h1>
+        <p className="text-gray-600 text-lg max-w-xl mx-auto">
+          Your AI-powered fitness assistant: track progress, plan workouts,
+          and eat healthier.
         </p>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          <Card className="shadow hover:shadow-lg transition">
-            <CardContent className="flex flex-col items-center">
-              <div className="relative h-32 w-full mb-4 rounded overflow-hidden">
-                <Image
-                  src="/stat.jpg"
-                  alt="Track Progress"
-                  fill
-                  className="object-cover"
-                />
-              </div>
-              <h3 className="text-xl font-semibold mb-2">
-                Track Progress
-              </h3>
-              <p className="text-sm text-muted-foreground">
-                Log weight, BMI & body fat over time.
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="shadow hover:shadow-lg transition">
-            <CardContent className="flex flex-col items-center">
-              <div className="relative h-32 w-full mb-4 rounded overflow-hidden">
-                <Image
-                  src="/workout.jpg"
-                  alt="AI Workout"
-                  fill
-                  className="object-cover"
-                />
-              </div>
-              <h3 className="text-xl font-semibold mb-2">
-                AI Workout Plans
-              </h3>
-              <p className="text-sm text-muted-foreground">
-                Get personalized AI-generated workouts.
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="shadow hover:shadow-lg transition">
-            <CardContent className="flex flex-col items-center">
-              <div className="relative h-32 w-full mb-4 rounded overflow-hidden">
-                <Image
-                  src="/food.jpg"
-                  alt="Nutrition Planner"
-                  fill
-                  className="object-cover"
-                />
-              </div>
-              <h3 className="text-xl font-semibold mb-2">
-                Diet & Nutrition
-              </h3>
-              <p className="text-sm text-muted-foreground">
-                Plan meals & analyze macros.
-              </p>
-            </CardContent>
-          </Card>
+        <div className="flex justify-center gap-4 pt-4">
+          <a
+            href="/login"
+            className="px-6 py-2 rounded-md bg-black text-white hover:bg-gray-800 transition"
+          >
+            Login
+          </a>
+          <a
+            href="/register"
+            className="px-6 py-2 rounded-md border border-gray-300 hover:bg-gray-100 transition"
+          >
+            Register
+          </a>
         </div>
       </div>
-    );
-  }
 
-  if (loading) {
-    return <Skeleton className="h-[400px] w-full" />;
-  }
+      {/* Feature Cards */}
+      <div className="mt-20 grid grid-cols-1 md:grid-cols-3 gap-8 px-6 max-w-6xl w-full">
+        {/* Track Progress */}
+        <div className="border rounded-xl p-6 shadow-sm hover:shadow-md transition">
+          <img
+            src="/images/progress.jpg"
+            alt="Track Progress"
+            className="rounded-lg mb-4 h-40 w-full object-cover"
+          />
+          <h3 className="text-xl font-semibold mb-2">Track Progress</h3>
+          <p className="text-gray-600">
+            Log weight, BMI, and body fat over time with clear insights.
+          </p>
+        </div>
 
-  return (
-    <div className="p-6 space-y-10">
-      <h1 className="text-3xl font-semibold">
-        Welcome, {user.name}!
-      </h1>
+        {/* AI Workout Plans */}
+        <div className="border rounded-xl p-6 shadow-sm hover:shadow-md transition">
+          <img
+            src="/images/workout.jpg"
+            alt="AI Workout Plans"
+            className="rounded-lg mb-4 h-40 w-full object-cover"
+          />
+          <h3 className="text-xl font-semibold mb-2">AI Workout Plans</h3>
+          <p className="text-gray-600">
+            Get personalized AI-generated workout plans tailored to you.
+          </p>
+        </div>
 
-      <Tabs
-        value={range}
-        onValueChange={(v) => setRange(v as Range)}
-      >
-        <TabsList>
-          <TabsTrigger value="day">Day</TabsTrigger>
-          <TabsTrigger value="week">Week</TabsTrigger>
-          <TabsTrigger value="month">Month</TabsTrigger>
-          <TabsTrigger value="year">Year</TabsTrigger>
-        </TabsList>
-      </Tabs>
-
-      <section className="rounded-lg border p-4 shadow">
-        <h2 className="text-lg font-semibold mb-2">Weight</h2>
-        <Card>
-          <CardContent>
-            {weightData.length === 0 ? (
-              <Button onClick={() => router.push("/intake")}>
-                Add Weight Entry
-              </Button>
-            ) : (
-              <WeightChart userId={user.id} range={range} />
-            )}
-          </CardContent>
-        </Card>
-      </section>
-
-      <section className="rounded-lg border p-4 shadow">
-        <h2 className="text-lg font-semibold mb-2">
-          Body Fat
-        </h2>
-        <Card>
-          <CardContent>
-            {bodyFatData.length === 0 ? (
-              <Button onClick={() => router.push("/intake")}>
-                Add Body Fat
-              </Button>
-            ) : (
-              <BodyFatChart userId={user.id} range={range} />
-            )}
-          </CardContent>
-        </Card>
-      </section>
-
-      <section className="rounded-lg border p-4 shadow">
-        <h2 className="text-lg font-semibold mb-2">BMI</h2>
-        <Card>
-          <CardContent>
-            {bmi === null ? (
-              <Button onClick={() => router.push("/intake")}>
-                Add BMI Entry
-              </Button>
-            ) : (
-              <BmiGaugeChart bmi={bmi} />
-            )}
-          </CardContent>
-        </Card>
-      </section>
-
-      <TodoExercise userId={user.id} />
-      <TodoDiet userId={user.id} />
+        {/* Diet & Nutrition */}
+        <div className="border rounded-xl p-6 shadow-sm hover:shadow-md transition">
+          <img
+            src="/images/nutrition.jpg"
+            alt="Diet and Nutrition"
+            className="rounded-lg mb-4 h-40 w-full object-cover"
+          />
+          <h3 className="text-xl font-semibold mb-2">Diet & Nutrition</h3>
+          <p className="text-gray-600">
+            Plan meals, track macros, and hit your nutrition goals.
+          </p>
+        </div>
+      </div>
     </div>
   );
 }

@@ -188,36 +188,43 @@ export async function loginUser(email: string, password: string) {
      throw error;
   }
 }
-export interface CurrentUser {
+
+export type CurrentUser = {
   id: string;
   name: string;
   email: string;
-}
-export async function getCurrentUser(): Promise<CurrentUser> {
-  // tell TS you expect an _id, name, and email
-  try{
-  const { data } = await api.get<{
-    _id: string;
-    name: string;
-    email: string;
-  }>('/auth/user');
+};
 
-  // map _id → id and pass name + email through
-  return {
-    id: data._id,
-    name: data.name,
-    email: data.email
-  };}
-  catch (error) {
-    if (
-       axios.isAxiosError(error) &&
-       error.response?.data?.error
-     ) {
-       throw new Error(error.response.data.error);
-     }
-     throw error;
+export async function getCurrentUser(): Promise<CurrentUser | null> {
+  try {
+    const { data } = await api.get<{ _id: string; name: string; email: string }>(
+      "/auth/user"
+    );
+
+    return {
+      id: data._id,
+      name: data.name,
+      email: data.email,
+    };
+  } catch (error) {
+    // ✅ not logged in -> just return null (don't treat like an "error")
+    if (axios.isAxiosError(error) && error.response?.status === 401) {
+      return null;
+    }
+
+    // if backend sends a message string or {error:"..."}
+    if (axios.isAxiosError(error)) {
+      const msg =
+        (error.response?.data as any)?.error ||
+        (typeof error.response?.data === "string" ? error.response?.data : null);
+
+      if (msg) throw new Error(msg);
+    }
+
+    throw error;
   }
 }
+
 
 export async function logoutUser() {
     try {

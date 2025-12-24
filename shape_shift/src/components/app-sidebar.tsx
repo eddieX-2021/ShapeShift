@@ -24,21 +24,22 @@ import {
   CollapsibleTrigger,
   CollapsibleContent,
 } from "@/components/ui/collapsible";
-
+import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { logoutUser } from "@/lib/api"; // Import the logout function
 import { toast } from "@/hooks/use-toast"; 
-
-const mainLinks = [
-  { href: "/", label: "Dashboard", icon: Home },
+type NavLink = {
+  href: string;
+  label: string;
+  icon: LucideIcon;
+};
+const aiLinks: NavLink[] = [{ href: "/ai", label: "AI Chatbot", icon: Bot }];
+const mainLinks: NavLink[] = [
+  { href: "/dashboard", label: "Dashboard", icon: Home },
   { href: "/intake", label: "Daily Intake", icon: Activity },
   { href: "/exercise", label: "Exercise Plan", icon: Dumbbell },
   { href: "/diet", label: "Diet Planner", icon: Salad },
-];
-
-const aiLinks = [
-  { href: "/chatbot", label: "AI Chatbot", icon: Bot },
 ];
 
 const helpItems = [

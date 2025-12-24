@@ -26,15 +26,24 @@ export default function IntakeForm() {
   const [submitted, setSubmitted] = useState(false);
 
   useEffect(() => {
-    getCurrentUser()
-      .then((u) => setUserId(u.id))
-      .catch((e) => console.error("Failed to fetch user:", e))
-      .finally(() => setLoadingUser(false));
+    (async () => {
+      try {
+        const u = await getCurrentUser();
+        setUserId(u?.id ?? null);
+      } catch (e) {
+        console.error("Failed to fetch user:", e);
+        setUserId(null);
+      } finally {
+        setLoadingUser(false);
+      }
+    })();
   }, []);
 
   useEffect(() => {
     if (!userId) return;
+
     let mounted = true;
+
     const fetchStatus = async () => {
       try {
         const done = await checkIntake(userId);
@@ -43,8 +52,10 @@ export default function IntakeForm() {
         console.error("checkIntake failed", e);
       }
     };
+
     fetchStatus();
     const id = setInterval(fetchStatus, 60_000);
+
     return () => {
       mounted = false;
       clearInterval(id);
@@ -63,11 +74,13 @@ export default function IntakeForm() {
 
   const handleSubmit = async () => {
     if (!userId) return;
+
     const base: IntakePayload = {
       userId,
       weight: parseFloat(weight),
       bmi: parseFloat(bmi),
     };
+
     const payload: IntakePayload =
       method === "direct"
         ? { ...base, bodyFat }
@@ -78,11 +91,10 @@ export default function IntakeForm() {
               height: Number(height),
               waist: Number(waist),
               neck: Number(neck),
-              ...(gender === "female"
-                ? { hip: Number(hips) }
-                : {}),
+              ...(gender === "female" ? { hip: Number(hips) } : {}),
             } as NavyInputs,
           };
+
     try {
       await submitIntakeEntry(payload);
       setSubmitted(true);
@@ -93,12 +105,17 @@ export default function IntakeForm() {
   };
 
   if (loadingUser) return <p>Loading...</p>;
-  if (submitted)
+
+  // ✅ Not logged in
+  if (!userId) return <p className="text-gray-600">Please log in to submit intake.</p>;
+
+  if (submitted) {
     return (
       <div className="text-green-600 text-lg">
         ✅ You’ve completed today’s intake!
       </div>
     );
+  }
 
   return (
     <form
@@ -108,7 +125,6 @@ export default function IntakeForm() {
       }}
       className="grid grid-cols-1 md:grid-cols-3 gap-6"
     >
-      {/* Weight */}
       <div className="space-y-2 border rounded p-4">
         <Label htmlFor="weight">Weight (kg)</Label>
         <Input
@@ -121,7 +137,6 @@ export default function IntakeForm() {
         />
       </div>
 
-      {/* BMI */}
       <div className="space-y-2 border rounded p-4">
         <Label htmlFor="bmi">BMI</Label>
         <Input
@@ -134,14 +149,9 @@ export default function IntakeForm() {
         />
       </div>
 
-      {/* Body Fat Method & Inputs */}
       <div className="space-y-2 border rounded p-4">
         <Label>Body Fat Input Method</Label>
-        <Select
-          onValueChange={(v) =>
-            setMethod(v as "direct" | "navy")
-          }
-        >
+        <Select onValueChange={(v) => setMethod(v as "direct" | "navy")}>
           <SelectTrigger>
             <SelectValue placeholder="Select method" />
           </SelectTrigger>
@@ -167,11 +177,7 @@ export default function IntakeForm() {
         {method === "navy" && (
           <>
             <Label>Gender</Label>
-            <Select
-              onValueChange={(v) =>
-                setGender(v as "male" | "female")
-              }
-            >
+            <Select onValueChange={(v) => setGender(v as "male" | "female")}>
               <SelectTrigger>
                 <SelectValue placeholder="Gender" />
               </SelectTrigger>
@@ -224,13 +230,8 @@ export default function IntakeForm() {
         )}
       </div>
 
-      {/* Submit Button */}
       <div className="col-span-1 md:col-span-3 pt-4">
-        <Button
-          type="submit"
-          className="w-full"
-          disabled={!method}
-        >
+        <Button type="submit" className="w-full" disabled={!method}>
           Submit All Intake
         </Button>
       </div>
