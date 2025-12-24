@@ -212,17 +212,31 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
       return null;
     }
 
-    // if backend sends a message string or {error:"..."}
+    // safely extract error message without using `any`
     if (axios.isAxiosError(error)) {
-      const msg =
-        (error.response?.data as any)?.error ||
-        (typeof error.response?.data === "string" ? error.response?.data : null);
+      const data: unknown = error.response?.data;
 
-      if (msg) throw new Error(msg);
+      let msg: string | null = null;
+
+      if (
+        typeof data === "object" &&
+        data !== null &&
+        "error" in data &&
+        typeof (data as { error: unknown }).error === "string"
+      ) {
+        msg = (data as { error: string }).error;
+      } else if (typeof data === "string") {
+        msg = data;
+      }
+
+      if (msg) {
+        throw new Error(msg);
+      }
     }
 
     throw error;
   }
+
 }
 
 
