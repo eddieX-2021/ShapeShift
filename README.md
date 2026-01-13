@@ -1,6 +1,7 @@
 # ShapeShift
 Website link: https://shape-shift-vert.vercel.app/
 website might be down due to low budget.
+Please give 30 - 40 seconds for render to spin up since it is on the free tier version.
 
 ## Summary
 
